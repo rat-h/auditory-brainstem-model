@@ -1,0 +1,992 @@
+#! /usr/bin/python
+import sys, os, csv, glob
+try:
+    import cPickle as pickle
+except:
+    import pickle
+import numpy as np
+import numpy.random as rnd
+import scipy as sc
+import scipy.signal as ss
+
+#### Import TOOLS directory ####
+homedir = os.path.dirname(sys.argv[0])
+sys.path.insert(0,homedir+"/tools")
+
+def read24Wav(filename, samplerate=100e3, maxSPL=1200, resample='MEAN',delay=0.01, tail=0.1):
+	"""
+	read24Wav reads 24 bit wave file and return normolized data for AN model
+	Parameters:
+		filename
+		samplerate	- destination sample rate 
+		maxSPL		- SPL in dB corresponds to maximal amplitude in wav file (i.e.0x7FFFFF)
+					  if maxSPL == None, it returns unscaled data
+					  default maxSPL=1200dB
+		resample	- method of resample data to samplerate frequency.
+					  if 'GNU', it uses GNU libresample (Kazer filters)
+					  if 'SCIPY', it uses scipy.signal.resample (fft mapping)
+					  if 'MEAN', it calculates mean from both libraries. (default, most accurate method)
+					  if 'None', it returns actual data without resampling and scaling
+					  default 'MEAN'
+		delay		- delay in second before sound. Delay is filled by first sample from sound file.
+					  default 0.01
+		tail		- duration of silent after stimulus in seconds. Tail filled by last sample from sound file.
+	Returns:
+		(
+			number of channels,
+			signal duration in sec,
+			data size
+			[
+				first channel data,
+				second channel data,
+				....
+			]
+		)
+	"""
+	#Read 24 bit wav file
+	size,samfreq,nchannels,data= at.read24bit(filename)
+	#Separate channels and add 125 ms of silent at the beginning and at the end
+	delaysamples	= int( np.round(samfreq*delay) )
+	tailsamples		= int( np.round(samfreq*tail) )
+	channels 		= [ np.append(np.linspace(0,data[x],delaysamples),np.append(data[x::nchannels],np.repeat(data[x-nchannels-1],tailsamples))) for x in xrange(nchannels) ]
+	signalduration	= float(size+delaysamples+tailsamples)/samfreq #in sec
+	hsize			= signalduration *  samplerate
+	if resample == "None" or resample == None:
+		return nchannels,signalduration,size+samfreq/4,channels
+	if resample == "GNU":
+		# resampling by GNU libresample (Kazer filters):
+		hchannels = [ h[0:hsize] for h in [ at.resample(x, float(hsize)/float(x.size),0) for x in channels] ]
+	elif resample == "SCIPY":
+		# resampling by scipy.signal (fft mapping):
+		hchannels = [ ss.resample(x, hsize) for x in channels]
+	elif resample == "MEAN" :
+		# Mean value of resample functions by GNU libresample(Kazer filters) and scipy.signal (fft mapping)
+		hchannels = map(lambda h,s:(h[1:hsize+1]+s)/2.,[ at.resample(x, float(hsize)/float(x.size),1) for x in channels],[ ss.resample(x, hsize) for x in channels])
+	else:
+		sys.stderr.write("Cannot recognize resample method. Should be GNU or SCIPY or MEAN\n\n")
+		sys.exit(1) 
+	if maxSPL != None:
+		#Normalization under assumption that maximal signal amplitude in 24bit wave file (i.e.0x7FFFFF) equals to maxSPL dB
+		wavcoeff = np.sqrt(2)*20e-6*np.power(10.0,float(maxSPL)/20.)
+		hchannels = [ d * wavcoeff for d in hchannels ]
+	return nchannels,signalduration,hsize,hchannels
+
+
+def rampedsin(frequency = 1e3, duration = 0.1, rampup = 5e-3, rampdown = 5e-3, delay = 1e-2, tail = 1e-1, stimdb = 10, smpfreq=100e3):
+	"""
+	rampedsin generates ramped sinusoidal stimulus.
+	"""
+	normcoeff =np.sqrt(2)*20e-6*10.0**(float(stimdb)/20.)
+	t = np.linspace(0, duration, duration * smpfreq+1)
+	ramp = (t/rampup)*(t < rampup)+1.0*(t >= rampup)*(t <= duration-rampdown)+(duration-t)/rampdown*(t > duration-rampdown)
+	actualdata = np.sin(2*np.pi*frequency*t)*ramp*normcoeff
+	result = np.zeros(delay*smpfreq+actualdata.size+tail*smpfreq)
+	result[delay*smpfreq:delay*smpfreq+actualdata.size] =actualdata
+	return result
+
+def click(stimdb=40, delay=0.01e-3, clickdur=0.1e-3, stimdur=0.1, smpfreq=100e3):
+	"""
+	click generates click stimulus.
+	"""
+	normcoeff = 20e-6*10.0**(float(stimdb)/20.)
+	result = np.zeros(int(stimdur*100e3))
+	result[int(delay*smpfreq):int((delay+clickdur)*smpfreq)] = 1.
+	result *= normcoeff
+	return result
+
+def SAMnoise(frequency=500, duration=0.1, rampup=5e-3, rampdown=5e-3, delay=0.01, tail=0.1, stimdb=80, moddip=0.25):
+	"""
+	SAMnoise generates sinusoidal modulated noise 
+	"""
+	smpfreq=100e3
+	normcoeff =np.sqrt(2)*20e-6*10.0**(float(stimdb)/20.)
+	t = np.linspace(0, duration, duration * smpfreq+1)
+	ramp = (t < rampup)*(t/rampup)+(t >= rampup)*(t <= duration-rampdown)+(t > duration-rampdown)*(duration-t)/rampdown
+	modulation = ((1-moddip/2.)-moddip*np.sin(2*np.pi*frequency*t)/2.)*ramp
+	noise = np.random.rand(t.size)*2.-1.
+	actualdata = noise*modulation*normcoeff
+	result = np.zeros(delay*smpfreq+actualdata.size+tail*smpfreq)
+	result[delay*smpfreq:delay*smpfreq+actualdata.size] =actualdata
+	return result
+	
+
+def AuditoryNerve(
+	indata,							# sound pressure in dB ONLY one channel!!!! 
+	spectrange		= (2.0,4.3),	# range of CF in nerve. logspice from 10^2 to 10^4.3 Hz with step nhcells
+									# (should be Hz range if uniform in True)
+	nhcells			= 50,			# number of hair cells
+	cohc			= 1.0,			# normal ohc function
+	cihc			= 1.0,			# normal ihc function
+	fibtypesratio	= (0,1,9),		# proportion of type 1, 2 and 3 fibers from one hair cell
+									# spontaneous rate (in spikes/s) of the fiber BEFORE refractory effects; "1" = Low; "2" = Medium; "3" = High
+	implnt			= 0,			# "0" for approximate or "1" for actual implementation of the power-law functions in the Synapse
+	fibperhcell		= 20,			# number fiber per one hair cell.
+	uniform			= False			# Set to True if distribution of hair cells is unform cross frequencies.
+	):
+	"""
+	Auditory Nerve Model
+	Python wrapper for Zilany et al. 2009 model
+	Coded by Timur Pinin (timpin@rambler.ru)
+	"""
+	Fs			= 100e3		#sampling frequency (by default see comemnts in original matlab code)
+	if uniform:
+		CFs			= np.linspace(spectrange[0],spectrange[1],nhcells) 
+	else:
+		CFs			= np.logspace(spectrange[0],spectrange[1],nhcells) 
+	nfibers		= CFs.size
+	anihc		= [ None  for x in CFs ]
+	ansyns		= [  []   for x in CFs ]
+	anspks		= [  []   for x in CFs ]
+	
+	fibtypesratio = np.array(fibtypesratio,dtype=float)
+	fibtypesratio /= np.sum(fibtypesratio)
+	fibtypesratio[1] += fibtypesratio[0]
+	fibtypesratio[2] += fibtypesratio[1]
+	for idx in xrange(CFs.size):
+		#Random number of fibers with given probability.
+		rnd = np.random.random(fibperhcell)
+		T1 = rnd[ np.where(rnd < fibtypesratio[0] )].size
+		T2 = rnd[ np.where(rnd < fibtypesratio[1] )].size
+		T3 = rnd[ np.where(rnd < fibtypesratio[2] )].size
+		#Predetermined number of fibers
+		#T1 = int(np.round( fibtypesratio[0]*fibperhcell ) )
+		#T2 = int(np.round( fibtypesratio[1]*fibperhcell ) )
+		#T3 = int(np.round( fibtypesratio[2]*fibperhcell ) )
+		ftypes = np.zeros(fibperhcell, dtype=int)
+		ftypes[:T1]		= 1
+		ftypes[T1:T2]	= 2
+		ftypes[T2:T3]	= 3
+		sys.stderr.write("Activate fiber %fHz: "%CFs[idx])
+		ihc = an.ihc(indata,CFs[idx],1,1./Fs,indata.size/Fs,cohc,cihc)
+		anihc[idx] =  ( CFs[idx], ihc ) 
+		sys.stderr.write("=*=")
+		syns, spks = [], []
+		for ftype in ftypes:
+			syn,tsptim,tspsize = an.synapse(ihc,CFs[idx],1,1./Fs,ftype,implnt)
+			spk = [ x for x in tsptim[:tspsize] ]
+			spk = np.array( spk ) * 1e3 # spk - spike times in ms
+			syns.append(syn)
+			spks.append(spk)
+			sys.stderr.write(".")
+		ansyns[idx] = ( CFs[idx], ftypes, syns )
+		anspks[idx] = ( CFs[idx], ftypes, spks )
+		sys.stderr.write(" done\n")
+	return anihc,ansyns,anspks
+
+if __name__ == "__main__":
+	import argparse
+	common_parser = argparse.ArgumentParser()#add_help=False)
+
+	commandparsers = common_parser.add_subparsers(
+				dest="command",
+				help='Command. For help with idividual commands, type commad --help (Example: click --help)')
+	
+	genert_parser = argparse.ArgumentParser(add_help=False)
+	genert_parser.add_argument(			"outputfile",
+				type=str,
+				help="Output pkl/spkl filename.")
+	genert_parser.add_argument("-s",	"--squeezed",
+				default=False, action='store_true',
+				help="Do not record in pkl/spkl file response of hair cells and auditory nerve synapses")	
+	genert_parser.add_argument(			"--comment",
+				type=str,
+				help="Add some description for DB")
+	genert_parser.add_argument("-v",	"--view",
+				default=False, action='store_true',
+				help="Show result at graphical console")
+	genert_parser.add_argument("-nhc",	"--number-hair-cells",
+				type=int, default=800,
+				help="Number of hair cells. They are uniformly/logarithmically distributed cross frequency range")
+	genert_parser.add_argument("-fr",	"--frequency-range",  metavar="FREQUENCY",
+				type=float, default=(100.,20000), nargs=2,
+				help="Frequency range for hair cells in Hz. Minimal and maximal values")
+	genert_parser.add_argument("-fphc",	"--fiber-per-hcell",
+				type=int, default=20,
+				help="number of fiber in auditory nerve for each hair cell")
+	genert_parser.add_argument("-pt",	"--portion-types", metavar="PORTION",
+				type=float, default=(0.,1.,9.), nargs=3,
+				help="portion of type-1, type-2 and type-3 fibers in auditory nerve")
+	genert_parser.add_argument("-d",	"--delay",
+				type=float, default=0.01,
+				help="delay before stimulus in seconds")
+	genert_parser.add_argument("-t",	"--tail",
+				type=float, default=0.1,
+				help="continuation after stimulus in seconds")
+	genert_parser.add_argument("-u",	"--uniform",
+				default=False, action='store_true',
+				help="Use uniform distribution of hair cells cross frequencies instead of logarithm 10")
+
+	click_parser = commandparsers.add_parser('click',
+				parents=[genert_parser],
+				help='Generate auditory nerve response on click')
+	click_parser.add_argument( "-ITD",		"--interaural-time-difference",
+				type=float, default=0.,
+				help="Sets ITD in seconds")
+	click_parser.add_argument( "-ILD",		"--interaural-level-difference",
+				type=float, default=0.,
+				help="Sets ILD in dB")
+	click_parser.add_argument( "-MSPL",		"--stimulus-amplitude",
+				type=float, default=80.,
+				help="Sets click amplitude (SPL) in dB")
+	click_parser.add_argument( "-DUR",		"--stimulus-duration",
+				type=float, default=22e-6,
+				help="Sets click duration in seconds")
+
+
+	tone_parser = commandparsers.add_parser('tone',
+				parents=[genert_parser],
+				help='Generate auditory nerve response on ramped tone')
+	tone_parser.add_argument( "-ITD",		"--interaural-time-difference",
+				type=float, default=0.,
+				help="Sets ITD in seconds")
+	tone_parser.add_argument( "-ILD",		"--interaural-level-difference",
+				type=float, default=0.,
+				help="Sets ILD in dB")
+	tone_parser.add_argument( "-MSPL",		"--stimulus-amplitude",
+				type=float, default=80.,
+				help="Sets tone amplitude (SPL) in dB")
+	tone_parser.add_argument( "-DUR",		"--stimulus-duration",
+				type=float, default=0.1,
+				help="Sets tone duration in seconds")
+	tone_parser.add_argument( "-SF",		"--stimulus-frequency",
+				type=float, default=1000,
+				help="Sets tone frequency in Hz")
+	tone_parser.add_argument( "-RU",		"--ramped-up",
+				type=float, default=5e-3,
+				help="Duration of tone increasing in seconds")
+	tone_parser.add_argument( "-RD",		"--ramped-down",
+				type=float, default=5e-3,
+				help="Duration of tone decreasing in seconds")
+	
+	
+	samnoise_parser = commandparsers.add_parser('SAM-noise',
+				parents=[genert_parser],
+				help='Generate auditory nerve response on sinusoidal modulated white noise')
+	samnoise_parser.add_argument( "-ITD",		"--interaural-time-difference",
+				type=float, default=0.,
+				help="Sets ITD in seconds")
+	samnoise_parser.add_argument( "-ILD",		"--interaural-level-difference",
+				type=float, default=0.,
+				help="Sets ILD in dB")
+	samnoise_parser.add_argument( "-MSPL",		"--stimulus-amplitude",
+				type=float, default=80.,
+				help="Sets max. stimulus amplitude (SPL) in dB")
+	samnoise_parser.add_argument( "-DUR",		"--modulation-duration",
+				type=float, default=0.1,
+				help="Sets modulation duration in seconds")
+	samnoise_parser.add_argument( "-MF",		"--modulation-frequency",
+				type=float, default=1000,
+				help="Sets modulation frequency in Hz")
+	samnoise_parser.add_argument( "-RU",		"--ramped-up",
+				type=float, default=5e-3,
+				help="Duration of modulation increasing in seconds")
+	samnoise_parser.add_argument( "-RD",		"--ramped-down",
+				type=float, default=5e-3,
+				help="Duration of modulation decreasing in seconds")
+	samnoise_parser.add_argument( "-M",		"--modulation",
+				type=float, default=0.75,
+				help="Sets the modulation deepness")
+
+	wav24_parser = commandparsers.add_parser('wave24',
+				parents=[genert_parser],
+				help='Generate auditory nerve response on recorded 24-bits wave file')
+	wav24_parser.add_argument( "input",
+				type=str,
+				help="input wave-24 file")
+	wav24_parser.add_argument( "-MSPL",		"--stimulus-amplitude",
+				type=float, default=75.,
+				help="Sets max. stimulus amplitude (SPL) in dB")
+	wav24_parser.add_argument( 		"--resample",
+				type=str, default='MEAN', choices=['MEAN','GNU','SCIPY'],
+				help="Sets resample algorithm")
+
+	squeeze_parser = commandparsers.add_parser('squeeze',
+				help='Squeeze pkl to spkl (i.e. remove hair cells and synapses responses)')
+	squeeze_parser.add_argument( "iofile",
+				type=str,
+				help="input/output pkl/spkl file")
+	squeeze_parser.add_argument(			"--comment",
+				type=str,
+				help="Add some description for DB")
+	squeeze_parser.add_argument("-v",	"--view",
+				default=False, action='store_true',
+				help="Show result at graphical console")
+
+	comment_parser = commandparsers.add_parser('comment',
+				help='Add comment to DB')
+	comment_parser.add_argument( "iofile",
+				type=str,
+				help="pkl/spkl file")
+	comment_parser.add_argument( "comment",
+				type=str,
+				help="Description for DB")
+	comment_parser.add_argument("-v",	"--view",
+				default=False, action='store_true',
+				help="Show result at graphical console")
+
+	check_parser = commandparsers.add_parser('check',
+				help='Check pkl/spkl file')
+	check_parser.add_argument( "file",
+				type=str,
+				help="pkl/spkl file")
+	check_parser.add_argument( "-G", "--graph-to-file",
+				type=str,
+				help="plot to file")
+	check_parser.add_argument( "-ng", "--no-graphics",
+				default=False, action='store_true',
+				help="Do not plot garphs on a scrine")
+	check_parser.add_argument( "-XML", "--save-to-xml",
+				type=str,
+				help="save paranters into XML file")
+	check_parser.add_argument(			"--comment",
+				type=str,
+				help="Add some description for DB")
+	check_parser.add_argument("-v",	"--view",
+				default=False, action='store_true',
+				help="Show result at graphical console")
+
+	cargs = common_parser.parse_args()
+	
+#######################################################################
+#                                                                     #
+#                            CLICK GENERATOR                          #
+#                                                                     #
+#######################################################################
+	if cargs.command == 'click':
+		sys.path.append("tools")
+		import ZilanyCarney2009AN as an
+
+		##############################################################
+		# Conver to log scale....
+		cargs.frequency_range = np.array(cargs.frequency_range)
+		frequency_range = cargs.frequency_range
+		if not cargs.uniform:
+			frequency_range		= np.log10(cargs.frequency_range)
+		portion_types = np.array(cargs.portion_types)
+		portion_types /= np.sum( cargs.portion_types )
+		##############################################################
+		# Print
+		print "\n======================================================"
+		print "CLICK GENERATOR:"
+		print " > ITD                  :",cargs.interaural_time_difference
+		print " > ILD                  :",cargs.interaural_level_difference
+		print " > click SPL            :",cargs.stimulus_amplitude
+		print " > stimu. duration      :",cargs.stimulus_duration+cargs.delay+cargs.tail
+		print " > click duration       :",cargs.stimulus_duration
+		print " > delay                :",cargs.delay
+		print " > tail                 :",cargs.tail
+		print " > > > > > > > > > > > > "
+		if not cargs.uniform:
+			print " > hair cells dist.     : log10"
+			print " > freq. range          :",10.**cargs.frequency_range[0], 10.**cargs.frequency_range[1],"(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		else:
+			print " > hair cells dist.     : uniform"
+			print " > freq. range          :","(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		print " > # of hair cells      :",cargs.number_hair_cells
+		print " > # of fib. per 1 hcell:",cargs.fiber_per_hcell
+		print " > prob. of fib.types   :",cargs.portion_types
+		print " > > > > > > > > > > > > "
+		print " > output file          :",cargs.outputfile
+		print " > squeezed             :",cargs.squeezed
+		print " > comments             :",cargs.comment
+		print " > view                 :",cargs.view
+		print "======================================================\n"
+		##############################################################
+		
+		lftclk = click(
+			stimdb	= cargs.stimulus_amplitude-cargs.interaural_level_difference,
+			delay	= cargs.delay-cargs.interaural_time_difference,
+			clickdur= cargs.stimulus_duration,
+			stimdur	= cargs.stimulus_duration+cargs.delay+cargs.tail
+			)
+		rttclk = click(
+			stimdb	= cargs.stimulus_amplitude+cargs.interaural_level_difference,
+			delay	= cargs.delay+cargs.interaural_time_difference,
+			clickdur= cargs.stimulus_duration,
+			stimdur	= cargs.stimulus_duration+cargs.delay+cargs.tail
+			)
+		
+		lihc,lsyn,lspk = AuditoryNerve(lftclk,
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		rihc,rsyn,rspk = AuditoryNerve(rttclk,
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		params ={
+			'stimtype'						: 'click',
+			'squeezed'						: cargs.squeezed,
+			'stimdur'						: cargs.stimulus_duration+cargs.delay+cargs.tail,
+			'interaural-time-difference'	: cargs.interaural_time_difference,
+			'interaural-level-difference'	: cargs.interaural_level_difference,
+			'stimulus-amplitude'			: cargs.stimulus_amplitude,
+			'stimulus-duration'				: cargs.stimulus_duration,
+			'delay'							: cargs.delay,
+			'tail'							: cargs.tail,
+			'frequency-range'				: cargs.frequency_range,
+			'uniform'						: cargs.uniform,
+			'number-hair-cells'				: cargs.number_hair_cells,
+			'fiber-per-hcell'				: cargs.fiber_per_hcell,
+			'portion-types'					: cargs.portion_types,
+			'comment'						: cargs.comment
+		}
+		with open(cargs.outputfile,"wb") as fd:
+			pickle.dump(params,fd)
+			pickle.dump(lspk,fd)
+			pickle.dump(rspk,fd)
+			pickle.dump(lftclk,fd)
+			pickle.dump(rttclk,fd)
+			if not cargs.squeezed:
+				pickle.dump(lsyn,fd)
+				pickle.dump(rsyn,fd)
+				pickle.dump(lihc,fd)
+				pickle.dump(rihc,fd)
+		if not cargs.view: sys.exit(0)
+	
+#######################################################################
+#                                                                     #
+#                       GENERATOR from WAVE 24                        #
+#                                                                     #
+#######################################################################
+	if cargs.command == 'wave24':
+		sys.path.append("tools")
+		import ZilanyCarney2009AN as an
+		import audiotools as at
+
+		##############################################################
+		# Conver to log scale....
+		cargs.frequency_range = np.array(cargs.frequency_range)
+		frequency_range = cargs.frequency_range
+		if not cargs.uniform:
+			frequency_range		= np.log10(cargs.frequency_range)
+		portion_types = np.array(cargs.portion_types)
+		portion_types /= np.sum( cargs.portion_types )
+		##############################################################
+		# Print
+		print "\n======================================================"
+		print "WAVE 24 GENERATOR:"
+		print " > input file           :",cargs.input
+		print " > max amplitude        :",cargs.stimulus_amplitude
+		print " > resample method      :",cargs.resample
+		print " > delay                :",cargs.delay
+		print " > tail                 :",cargs.tail
+		print " > number of channels   :",
+		nchannels,sigdur,datasize,data = read24Wav(cargs.input,
+			maxSPL = cargs.stimulus_amplitude,
+			resample=cargs.resample,
+			delay=cargs.delay,
+			tail=cargs.tail
+			)
+		print " > stimulus duration    :",sigdur
+		print " > > > > > > > > > > > > "
+		if not cargs.uniform:
+			print " > hair cells dist.     : log10"
+			print " > freq. range          :",10.**cargs.frequency_range[0], 10.**cargs.frequency_range[1],"(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		else:
+			print " > hair cells dist.     : uniform"
+			print " > freq. range          :","(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		print " > # of hair cells      :",cargs.number_hair_cells
+		print " > # of fib. per 1 hcell:",cargs.fiber_per_hcell
+		print " > prob. of fib.types   :",cargs.portion_types
+		print " > > > > > > > > > > > > "
+		print " > output file          :",cargs.outputfile
+		print " > squeezed             :",cargs.squeezed
+		print " > comments             :",cargs.comment
+		print " > view                 :",cargs.view
+		print "======================================================\n"
+		##############################################################
+		
+		lihc,lsyn,lspk = AuditoryNerve(data[0],
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		rihc,rsyn,rspk = AuditoryNerve(data[1],
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		params ={
+			'stimtype'					: 'wave24',
+			'squeezed'					: cargs.squeezed,
+			'input'						: cargs.input,
+			'stimdur'					: sigdur,
+			'stimulus-amplitude'		: cargs.stimulus_amplitude,
+			'resample'					: cargs.resample,
+			'delay'						: cargs.delay,
+			'tail'						: cargs.tail,
+			'frequency-range'			: cargs.frequency_range,
+			'number-hair-cells'			: cargs.number_hair_cells,
+			'uniform'					: cargs.uniform,
+			'fiber-per-hcell'			: cargs.fiber_per_hcell,
+			'portion-types'				: cargs.portion_types,
+			'comment'					: cargs.comment
+		}
+		with open(cargs.outputfile,"wb") as fd:
+			pickle.dump(params,fd)
+			pickle.dump(lspk,fd)
+			pickle.dump(rspk,fd)
+			pickle.dump(data[0],fd)
+			pickle.dump(data[1],fd)
+			if not cargs.squeezed:
+				pickle.dump(lsyn,fd)
+				pickle.dump(rsyn,fd)
+				pickle.dump(lihc,fd)
+				pickle.dump(rihc,fd)
+		if not cargs.view: sys.exit(0)
+
+#######################################################################
+#                                                                     #
+#                             TONE GENERATOR                          #
+#                                                                     #
+#######################################################################
+
+	
+	if cargs.command == 'tone' :
+		sys.path.append("tools")
+		import ZilanyCarney2009AN as an
+
+		##############################################################
+		# Conver to log scale....
+		cargs.frequency_range = np.array(cargs.frequency_range)
+		frequency_range = cargs.frequency_range
+		if not cargs.uniform:
+			cargs.frequency_range		= np.log10(cargs.frequency_range)
+		cargs.portion_types = np.array(cargs.portion_types)
+		cargs.portion_types /= np.sum( cargs.portion_types )
+		##############################################################
+		# Print
+		print "\n======================================================"
+		print "TONE GENERATOR:"
+		print " > ITD                  :",cargs.interaural_time_difference
+		print " > ILD                  :",cargs.interaural_level_difference
+		print " > stimu. duration      :",cargs.stimulus_duration+cargs.delay+cargs.tail+cargs.interaural_time_difference
+		print " > tone amplitude       :",cargs.stimulus_amplitude
+		print " > tone duration        :",cargs.stimulus_duration
+		print " > tone frequency       :",cargs.stimulus_frequency
+		print " > tone ramp up         :",cargs.ramped_up
+		print " > tone ramp down       :",cargs.ramped_down
+		print " > delay                :",cargs.delay
+		print " > tail                 :",cargs.tail
+		print " > > > > > > > > > > > > "
+		if not cargs.uniform:
+			print " > hair cells dist.     : log10"
+			print " > freq. range          :",10.**cargs.frequency_range[0], 10.**cargs.frequency_range[1],"(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		else:
+			print " > hair cells dist.     : uniform"
+			print " > freq. range          :","(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		print " > # of hair cells      :",cargs.number_hair_cells
+		print " > # of fib. per 1 hcell:",cargs.fiber_per_hcell
+		print " > prob. of fib.types   :",cargs.portion_types
+		print " > > > > > > > > > > > > "
+		print " > output file          :",cargs.outputfile
+		print " > squeezed             :",cargs.squeezed
+		print " > comments             :",cargs.comment
+		print " > view                 :",cargs.view
+		print "======================================================\n"
+		##############################################################
+		
+		lsin = rampedsin(
+			frequency	= cargs.stimulus_frequency,
+			duration	= cargs.stimulus_duration,
+			stimdb		= cargs.stimulus_amplitude-cargs.interaural_level_difference,
+			rampup		= cargs.ramped_up, rampdown = cargs.ramped_down,
+			delay		= cargs.delay-cargs.interaural_time_difference, 
+			tail		= cargs.tail+cargs.interaural_time_difference
+		)
+		rsin = rampedsin(
+			frequency	= cargs.stimulus_frequency,
+			duration	= cargs.stimulus_duration,
+			stimdb		= cargs.stimulus_amplitude+cargs.interaural_level_difference,
+			rampup		= cargs.ramped_up, rampdown = cargs.ramped_down,
+			delay		= cargs.delay+cargs.interaural_time_difference, 
+			tail		= cargs.tail-cargs.interaural_time_difference
+		)
+		lihc,lsyn,lspk = AuditoryNerve(lsin,
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		rihc,rsyn,rspk = AuditoryNerve(rsin,
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		params ={
+			'stimtype'						: 'tone',
+			'squeezed'						: cargs.squeezed,
+			'stimdur'						: cargs.stimulus_duration+cargs.delay+cargs.tail,
+			'interaural-time-difference'	: cargs.interaural_time_difference,
+			'interaural-level-difference'	: cargs.interaural_level_difference,
+			'stimulus-amplitude'			: cargs.stimulus_amplitude,
+			'stimulus-duration'				: cargs.stimulus_duration,
+			'stimulus-frequency'			: cargs.stimulus_frequency,
+			'ramped-up'						: cargs.ramped_up,
+			'ramped-down'					: cargs.ramped_down,
+			'delay'							: cargs.delay,
+			'tail'							: cargs.tail,
+			'frequency-range'				: cargs.frequency_range,
+			'number-hair-cells'				: cargs.number_hair_cells,
+			'uniform'						: cargs.uniform,
+			'fiber-per-hcell'				: cargs.fiber_per_hcell,
+			'portion-types'					: cargs.portion_types,
+			'comment'						: cargs.comment
+		}
+		with open(cargs.outputfile,"wb") as fd:
+			pickle.dump(params,fd)
+			pickle.dump(lspk,fd)
+			pickle.dump(rspk,fd)
+			pickle.dump(lsin,fd)
+			pickle.dump(rsin,fd)
+			if not cargs.squeezed:
+				pickle.dump(lsyn,fd)
+				pickle.dump(rsyn,fd)
+				pickle.dump(lihc,fd)
+				pickle.dump(rihc,fd)
+		if not cargs.view: sys.exit(0)
+
+#######################################################################
+#                                                                     #
+#                SINUSOIDAL MODULATED NOISE GENERATOR                 #
+#                                                                     #
+#######################################################################
+	if cargs.command == 'SAM-noise' :
+		sys.path.append("tools")
+		import ZilanyCarney2009AN as an
+
+
+		##############################################################
+		# Conver to log scale....
+		cargs.frequency_range = np.array(cargs.frequency_range)
+		frequency_range = cargs.frequency_range
+		if not cargs.uniform:
+			cargs.frequency_range		= np.log10(cargs.frequency_range)
+		cargs.portion_types = np.array(cargs.portion_types)
+		cargs.portion_types /= np.sum( cargs.portion_types )
+		##############################################################
+		# Print
+		print "\n======================================================"
+		print "SINUSOIDAL MODULATED NOISE GENERATOR:"
+		print " > ITD                  :",cargs.interaural_time_difference
+		print " > ILD                  :",cargs.interaural_level_difference
+		print " > stimu. duration      :",cargs.modulation_duration+cargs.delay+cargs.tail+cargs.interaural_time_difference
+		print " > modulation           :",cargs.modulation
+		print " > simulus amplitude    :",cargs.stimulus_amplitude
+		print " > modulation duration  :",cargs.modulation_duration
+		print " > modulation frequency :",cargs.modulation_frequency
+		print " > modulation ramp up   :",cargs.ramped_up
+		print " > modulation ramp down :",cargs.ramped_down
+		print " > delay                :",cargs.delay
+		print " > tail                 :",cargs.tail
+		print " > > > > > > > > > > > > "
+		if not cargs.uniform:
+			print " > hair cells dist.     : log10"
+			print " > freq. range          :",10.**cargs.frequency_range[0], 10.**cargs.frequency_range[1],"(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		else:
+			print " > hair cells dist.     : uniform"
+			print " > freq. range          :","(",cargs.frequency_range[0],cargs.frequency_range[1],")"
+		print " > # of hair cells      :",cargs.number_hair_cells
+		print " > # of fib. per 1 hcell:",cargs.fiber_per_hcell
+		print " > prob. of fib.types   :",cargs.portion_types
+		print " > > > > > > > > > > > > "
+		print " > output file          :",cargs.outputfile
+		print " > squeezed             :",cargs.squeezed
+		print " > comments             :",cargs.comment
+		print " > view                 :",cargs.view
+		print "======================================================\n"
+		##############################################################
+
+		lsin = SAMnoise(
+			frequency	= cargs.modulation_frequency,
+			duration	= cargs.modulation_duration,
+			stimdb		= cargs.stimulus_amplitude-cargs.interaural_level_difference,
+			rampup		= cargs.ramped_up, rampdown = cargs.ramped_down,
+			delay		= cargs.delay-cargs.interaural_time_difference, 
+			tail		= cargs.tail+cargs.interaural_time_difference,
+			moddip		= cargs.modulation
+		)
+		rsin = SAMnoise(
+			frequency	= cargs.modulation_frequency,
+			duration	= cargs.modulation_duration,
+			stimdb		= cargs.stimulus_amplitude+cargs.interaural_level_difference,
+			rampup		= cargs.ramped_up, rampdown = cargs.ramped_down,
+			delay		= cargs.delay+cargs.interaural_time_difference, 
+			tail		= cargs.tail-cargs.interaural_time_difference,
+			moddip		= cargs.modulation
+		)
+		lihc,lsyn,lspk = AuditoryNerve(lsin,
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		rihc,rsyn,rspk = AuditoryNerve(rsin,
+			spectrange		= frequency_range,
+			nhcells			= cargs.number_hair_cells,
+			fibperhcell		= cargs.fiber_per_hcell,
+			fibtypesratio	= cargs.portion_types,
+			uniform			= cargs.uniform
+			)
+		params ={
+			'stimtype'						: 'SAM-noise',
+			'squeezed'						: cargs.squeezed,
+			'stimdur'						: cargs.modulation_duration+cargs.delay+cargs.tail,
+			'interaural-time-difference'	: cargs.interaural_time_difference,
+			'interaural-level-difference'	: cargs.interaural_level_difference,
+			'modulation'					: cargs.modulation,
+			'modulation-duration'			: cargs.modulation_duration,
+			'modulation-frequency'			: cargs.modulation_frequency,
+			'stimulus-amplitude'			: cargs.stimulus_amplitude,
+			'ramped-up'						: cargs.ramped_up,
+			'ramped-down'					: cargs.ramped_down,
+			'delay'							: cargs.delay,
+			'tail'							: cargs.tail,
+			'frequency-range'				: cargs.frequency_range,
+			'number-hair-cells'				: cargs.number_hair_cells,
+			'uniform'						: cargs.uniform,
+			'fiber-per-hcell'				: cargs.fiber_per_hcell,
+			'portion-types'					: cargs.portion_types,
+			'comment'						: cargs.comment
+		}
+		with open(cargs.outputfile,"wb") as fd:
+			pickle.dump(params,fd)
+			pickle.dump(lspk,fd)
+			pickle.dump(rspk,fd)
+			pickle.dump(lsin,fd)
+			pickle.dump(rsin,fd)
+			if not cargs.squeezed:
+				pickle.dump(lsyn,fd)
+				pickle.dump(rsyn,fd)
+				pickle.dump(lihc,fd)
+				pickle.dump(rihc,fd)
+		if not cargs.view: sys.exit(0)
+
+
+#######################################################################
+#                                                                     #
+#              REMOVE ADDITIONL INFORMATION FROM PKL FILES            #
+#                                                                     #
+#######################################################################
+	if cargs.command == 'squeeze':
+		print "\n======================================================"
+		print "SQUEEZING FILE:"
+		print " > input/output file    :",cargs.iofile
+		print " > comments             :",cargs.comment
+		print " > view                 :",cargs.view
+		print "======================================================\n"
+		with open(cargs.iofile,"rb") as fd:
+			params	= pickle.load(fd)
+			lspk	= pickle.load(fd)
+			rspk	= pickle.load(fd)
+			if not ('squeezed' in params):
+				params['squeezed'] = False
+			lftwav	= pickle.load(fd)
+			rttwav	= pickle.load(fd)
+			if not( params['squeezed'] ):
+				damp	= pickle.load(fd)
+				damp	= pickle.load(fd)
+				damp	= pickle.load(fd)
+				damp	= pickle.load(fd)
+		if not( params['squeezed'] ):
+			params['squeezed'] = True
+			if cargs.comment != None:
+				params['comments'] = cargs.comment
+				
+			with open(cargs.iofile,"wb") as fd:
+				pickle.dump(params,fd)
+				pickle.dump(lspk,fd)
+				pickle.dump(rspk,fd)
+				pickle.dump(lftwav,fd)
+				pickle.dump(rttwav,fd)
+		else:
+			sys.stderr.write("input file %s allready squeezed....\n\n"%cargs.iofile)
+		if not cargs.view: sys.exit(0)
+
+
+#######################################################################
+#                                                                     #
+#              REMOVE ADDITIONL INFORMATION FROM PKL FILES            #
+#                                                                     #
+#######################################################################
+	if cargs.command == 'comment':
+		print "\n======================================================"
+		print "COMMENTING FILE:"
+		print " > input/output file    :",cargs.iofile
+		print " > comments             :",cargs.comment
+		print " > view                 :",cargs.view
+		print "======================================================\n"
+		with open(cargs.iofile,"rb") as fd:
+			params	=  pickle.load(fd)
+			lspk	= pickle.load(fd)
+			rspk	= pickle.load(fd)
+			lftwav	= pickle.load(fd)
+			rttwav	= pickle.load(fd)
+			if not ('squeezed' in params):
+				params['squeezed'] = False
+			if not( params['squeezed'] ):
+				la	= pickle.load(fd)
+				ra	= pickle.load(fd)
+				lb	= pickle.load(fd)
+				rb	= pickle.load(fd)
+
+		params['comments'] = cargs.comment
+		with open(cargs.iofile,"wb") as fd:
+			pickle.dump(params,fd)
+			pickle.dump(lspk,fd)
+			pickle.dump(rspk,fd)
+			pickle.dump(lftwav,fd)
+			pickle.dump(rttwav,fd)
+			if not( params['squeezed'] ):
+				pickle.dump(la,fd)
+				pickle.dump(ra,fd)
+				pickle.dump(lb,fd)
+				pickle.dump(rb,fd)
+		if not cargs.view: sys.exit(0)
+
+#######################################################################
+#                                                                     #
+#                        CHCECK PKL/SPKL FILES                        #
+#                                                                     #
+#######################################################################
+	if cargs.command == 'check' or cargs.view:
+		if cargs.command == 'check':
+			fname = cargs.file
+		elif cargs.view and cargs.command != 'squeeze' and cargs.command != 'comment':
+			fname = cargs.outputfile
+		elif cargs.view and ( cargs.command == 'squeeze' or cargs.command != 'comment'):
+			fname = cargs.iofile
+		with open(fname,"rb") as fd:
+			params	=  pickle.load(fd)
+			lspk	= pickle.load(fd)
+			rspk	= pickle.load(fd)
+			lftwav	= pickle.load(fd)
+			rttwav	= pickle.load(fd)
+			if not ('squeezed' in params):
+				params['squeezed'] = False
+			if not( params['squeezed'] ):
+				lsyn	= pickle.load(fd)
+				rsyn	= pickle.load(fd)
+				lihc	= pickle.load(fd)
+				rihc	= pickle.load(fd)
+	
+		#print XML DB
+		if cargs.command == 'check':
+			if cargs.save_to_xml != None:
+				with open(cargs.save_to_xml,"a") as fd:
+					fd.write("<stimulus type=\"%s\" file=\"%s\">\n"%(params["stimtype"],fname) )
+					for name in params:
+						if name == "stimtype" : continue
+						fd.write( "\t<%s>%s</%s>\n"%(name,params[name],name) )
+					fd.write( "</stimulus>\n" )
+			else:
+				print "<stimulus type=\"%s\" file=\"%s\">"%(params["stimtype"],fname)
+				for name in params:
+					if name == "stimtype" : continue
+					print "\t<%s>%s</%s>"%(name,params[name],name)
+				print "</stimulus>"
+		else:
+			print "<stimulus type=\"%s\" file=\"%s\">"%(params["stimtype"],fname)
+			for name in params:
+				if name == "stimtype" : continue
+				print "\t<%s>%s</%s>"%(name,params[name],name)
+			print "</stimulus>"
+		if cargs.no_graphics: exit(0)
+		
+		import matplotlib.pyplot as plt
+		plt.suptitle("FILE:%s\nSTIMULUS:%s\nCOMMENTS:%s"%(fname,params['stimtype'],params['comments']) )
+		xax = np.arange(0,params["stimdur"]*1000-0.01,0.01)
+		#DB>
+		print xax.size,lftwav.size
+		#<DB
+		if params['squeezed']:
+			lw=plt.subplot2grid((4,2),(0,0))
+			plt.plot(xax,lftwav)
+			plt.subplot2grid((4,2),(0,1),sharex=lw,sharey=lw)
+			plt.plot(xax,rttwav)
+
+			lk=plt.subplot2grid((4,2),(1,0),sharex=lw,rowspan=3)
+			for a in lspk:
+				c=["y","r","b","k","y"]
+				for x,i in map(None,a[2],a[1]):plt.plot(x,[a[0] for y in x],"|", mfc=c[i],ms=9)
+			if not params['uniform']:
+				plt.yscale('log')
+			plt.ylabel("Frequency (Hz)")
+
+			plt.subplot2grid((4,2),(1,1),sharey=lk, sharex=lk,rowspan=3)
+			for a in rspk:
+				c=["y","r","b","k","y"]
+				for x,i in map(None,a[2],a[1]):plt.plot(x,[a[0] for y in x],"|", mfc=c[i],ms=9)
+			if not params['uniform']:
+				plt.yscale('log')
+
+		else:
+			lw=plt.subplot(421)
+			plt.plot(xax,lftwav)
+			plt.subplot(422,sharex=lw,sharey=lw)
+			plt.plot(xax,rttwav)
+			
+			#
+			li=plt.subplot(423,sharex=lw)
+			for a in lihc:
+				xax = np.arange(0,a[1].size/100.,0.01)
+				plt.plot(xax,a[1])
+			ls=plt.subplot(425,sharex=lw)
+			for a in lsyn:
+				for x in a[2]:
+					xax = np.arange(0,x.size/100.,0.01)
+					plt.plot(xax,x) 
+			lk=plt.subplot(427,sharex=lw)
+			for a in lspk:
+				for x in a[2]:plt.plot(x,[a[0] for y in x],"|")
+			if not params['uniform']:
+				plt.yscale('log')
+			plt.ylabel("Frequency (Hz)")
+			
+			plt.subplot(424,sharex=lw,sharey=li)
+			for a in rihc:
+				xax = np.arange(0,a[1].size/100.,0.01)
+				plt.plot(xax,a[1])
+			plt.subplot(426,sharex=lw,sharey=ls)
+			for a in rsyn:
+				for x in a[2]:
+					xax = np.arange(0,x.size/100.,0.01)
+					plt.plot(xax,x) 
+			plt.subplot(428,sharey=lk, sharex=lk)
+			for a in rspk:
+				for x in a[2]:plt.plot(x,[a[0] for y in x],"|")
+			if not params['uniform']:
+				plt.yscale('log')
+		if cargs.command == 'check' and cargs.graph_to_file != None:
+			plt.savefig(cargs.graph_to_file)
+		else:
+			plt.show()
+		#if getdata:
+#			with open("lspk
+#			lspk	= pickle.load(fd)
+#			rspk	= pickle.load(fd)
+#			if not ('squeezed' in params):
+#				params['squeezed'] = False
+#			if not( params['squeezed'] ):
+#				lsyn	= pickle.load(fd)
+#				rsyn	= pickle.load(fd)
+#				lihc	= pickle.load(fd)
+#				rihc	= pickle.load(fd)
+			#with open('lrwaves.csv','w') as fd:
+				#for x in map(None,lftwav,rttwav):
+					#fd.write("%g,%g\n"%x)

@@ -1,0 +1,40 @@
+This directory is a simple python/numpy wrapper around C-library associated with papers:
+
+Zilany, M.S.A., Bruce, I.C., Nelson, P.C., and Carney, L.H. (2009). "A phenomenological 
+        model of the synapse between the inner hair cell and auditory nerve: Long-term 
+        adaptation with power-law dynamics," Journal of the Acoustical Society of America
+        126(5): 2390-2412.            
+ 
+Zilany, M. S. A. and Bruce, I. C. (2007). "Representation of the vowel
+        /eh/ in normal and impaired auditory nerve fibers: Model predictions of
+        responses in cats," Journal of the Acoustical Society of America
+        122(1):402-417.    
+
+Zilany, M. S. A. and Bruce, I. C. (2006). "Modeling auditory-nerve
+        responses for high sound pressure levels in the normal and impaired
+        auditory periphery," Journal of the Acoustical Society of
+        America 120(3):1446-1466.
+        
+Numpy, Scipy and Matplotlib are required for this package.
+
+##############################    DO NOT INSTALL THIS!  ####################################
+
+USAGE:
+(1) unzip it:
+$unzip ZilanyCarney2009AN.zip
+$cd ZilanyCarney2009AN
+
+(2) Build it:
+$python setup.py build
+
+(3) Copy binary library:
+$cp build/lib.SYSTEM-NAME/ZilanyCarney2009AN/ZilanyCarney2009AN* .
+where SYSTEM-NAME for example linux-i686-2.7
+
+(4) Try it:
+$python testCatmodel.py
+
+
+##############################################################################################
+TODO:
+C-code needs to be optimized.
