@@ -115,11 +115,6 @@ class vcnRaMbase:
 		self.sptr.thresh			= -10.
 		self.sptr.record(self.spks)
 		
-		#############################################################################################
-		#                                       PARAMETERS SETUP                                    #
-		#############################################################################################
-		if Type != None: self.setType(Type)
-		self.setParams(Param)
 
 		#############################################################################################
 		#                                     Global identification                                 #
@@ -128,6 +123,13 @@ class vcnRaMbase:
 			self.setgid(gid, pc)
 		else:
 			self.gid = None
+
+		#############################################################################################
+		#                                       PARAMETERS SETUP                                    #
+		#############################################################################################
+		self.setType("Type I-c")
+		if Type != None: self.setType(Type)
+		self.setParams(Param)
 	
 	def setallgid(self, basegid, pc=None ):
 		self.setgid(basegid, pc)
@@ -136,16 +138,14 @@ class vcnRaMbase:
 	def setgid(self, gid, pc=None):
 		self.gid = gid
 		self.output = h.NetCon(self.soma(0.5)._ref_v,None,sec=self.soma)
-		if not ( pc == None ):
+		if pc != None:
 			pc.set_gid2node(gid, pc.id())
 			pc.cell(gid, self.output)
 		return {'gid':gid, 'netcon':self.output, 'sec':self.soma}
 	def setParams(self, Param=None):	
 		if Param == None :
-			self.setType("Type I-c")
 			return
 		if not (type(Param) is dict) : 
-			self.setType("Type I-c")
 			return
 		for param in Param:
 			try: exec "self.soma(0.5).%s = %g"%(param,Param[param])
@@ -169,6 +169,9 @@ class vcnRaMbase:
 			self.vm						= -63.9
 			self.model					= 1
 			self.modelname 				= "Type I-c"
+			#DB>>
+			#print "Type I-c",self.gid
+			#<<DB
 		elif Type == "Type I-t":
 			self.soma(0.5).vcnna.gnabar		= self.nstomho(1000)
 			self.soma(0.5).vcnkht.gkhtbar	= self.nstomho(80)
@@ -213,6 +216,9 @@ class vcnRaMbase:
 			self.vm						= -63.6
 			self.model					= 5
 			self.modelname 				= "Type II"
+			#DB>>
+			#print "Type II",self.gid
+			#<<DB
 		elif Type == 'Type II-o':
 			self.soma(0.5).vcnna.gnabar		= self.nstomho(1000)
 			self.soma(0.5).vcnkht.gkhtbar	= self.nstomho(150)

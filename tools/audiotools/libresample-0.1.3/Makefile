@@ -4,7 +4,7 @@
 # working Makefile.
 
 CC = gcc
-CFLAGS = -fPIC -Wall
+CFLAGS = -g -O2 -Wall
 
 LIBS =  -lm
 
