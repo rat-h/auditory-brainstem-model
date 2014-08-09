@@ -315,10 +315,26 @@ def congen(config):
 				logging.error("number of connecction isn't integer for connection %s"%con )
 				return None
 			
+			if totsyn < 0:
+				determ_vs_stochast = True
+				lgid = FROML - 1
+				totsyn = np.abs( totsyn )
+			else:
+				determ_vs_stochast = False
+			
 			if conobj[3]:
 				mask = [ False for x in range(FROML,TOL) ]
+			brocker = totsyn * 10000;
 			while syncnt < totsyn:
-				lgid = np.random.randint(FROML, high=TOL)
+				if brocker < 0:
+					logging.error("Couldn't create connection {}. For GID: {} conditions don't allow create enough synapses".format(con,hgid) )
+					return None
+				else:
+					brocker -= 1
+				if determ_vs_stochast:
+					lgid = FROML if lgid >= TOL else lgid + 1
+				else:
+					lgid = np.random.randint(FROML, high=TOL)
 				if conobj[3] and mask[lgid-FROML]: continue
 				x = presynpos(hgid,lgid)
 				y = possynpos(hgid,lgid)
@@ -361,7 +377,7 @@ def congen(config):
 					if not 'module' in syn[1]:
 						logging.error("module name has not been found in a synapse option of connection: %s"%con)
 						return None						
-					cmd = syn[1]['module']+"(%g, sec=cell.%s)"%(syn[3],syn[2])
+					cmd = syn[1]['module']+"({}, sec=cell.{})".format(syn[3],syn[2])
 					prm = dict(syn[1])
 					del prm['module']
 					if "name" in prm:
@@ -504,9 +520,9 @@ def presetcellrec(rec, config):
 	with open(config["GENERAL"]['networkfilename'],"ab") as fd:
 		for rec in reclist:
 			if rec[2][2] == None:
-				rec[2]="%s(%g)._ref_%s"%(rec[2][0],rec[2][1],rec[2][3])
+				rec[2]="{}({})._ref_{}".format(rec[2][0],rec[2][1],rec[2][3])
 			else:
-				rec[2]="%s(%g).%s._ref_%s"%rec[2]
+				rec[2]="{}({}).{}._ref_{}".format(rec[2][0],rec[2][1],rec[2][2],rec[2][3])
 			pickle.dump(rec,fd)
 	return config
 

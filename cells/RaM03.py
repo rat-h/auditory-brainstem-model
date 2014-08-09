@@ -70,6 +70,9 @@ class vcnRaMbase:
 		speccm = 0.9
 		totcap =12						# total cap in pF for cell 
 		self.somaarea = totcap *1E-6 / 1# pf -> uF,assumes 1 uF/cm2; result is in cm2 
+		#DB>>
+		#print 1E-9/self.somaarea
+		#<<DB
 		lstd = 1E4*h.sqrt(self.somaarea/h.PI)	# convert from cm to um 
 		self.soma = h.Section(name='soma', cell=self)
 		#self.soma.cm=1
@@ -130,6 +133,9 @@ class vcnRaMbase:
 		self.setType("Type I-c")
 		if Type != None: self.setType(Type)
 		self.setParams(Param)
+		#DB>>
+		#print self.modelname
+		#<<DB
 	
 	def setallgid(self, basegid, pc=None ):
 		self.setgid(basegid, pc)
@@ -148,10 +154,11 @@ class vcnRaMbase:
 		if not (type(Param) is dict) : 
 			return
 		for param in Param:
-			try: exec "self.soma(0.5).%s = %g"%(param,Param[param])
+			try: exec "self.soma(0.5).{} = Param[\"{}\"]".format(param,param)
 			except BaseException as e:
 				logging.error("Coudn't set up parameter %s: %s"%(param,e))
 				raise ValueError("Wrong Parameter %s"%param) 
+			self.modelname +=  " self.soma(0.5).{} = {}".format(param,Param[param])
 		
 		
 	def setType(self,Type):
@@ -169,9 +176,6 @@ class vcnRaMbase:
 			self.vm						= -63.9
 			self.model					= 1
 			self.modelname 				= "Type I-c"
-			#DB>>
-			#print "Type I-c",self.gid
-			#<<DB
 		elif Type == "Type I-t":
 			self.soma(0.5).vcnna.gnabar		= self.nstomho(1000)
 			self.soma(0.5).vcnkht.gkhtbar	= self.nstomho(80)
@@ -216,9 +220,6 @@ class vcnRaMbase:
 			self.vm						= -63.6
 			self.model					= 5
 			self.modelname 				= "Type II"
-			#DB>>
-			#print "Type II",self.gid
-			#<<DB
 		elif Type == 'Type II-o':
 			self.soma(0.5).vcnna.gnabar		= self.nstomho(1000)
 			self.soma(0.5).vcnkht.gkhtbar	= self.nstomho(150)
