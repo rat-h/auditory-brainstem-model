@@ -18,14 +18,10 @@ case $1 in
 		pushd tools &&
 			pushd ZilanyCarney-JASAcod-2009 && python setup.py install --prefix=../ && popd && 
 			pushd audiotools && 
-				pushd libresample-0.1.3 && ( [ -e Makefile ] && make clean ) && ./configure && make && popd &&
+				pushd libresample-0.1.3 && ( [ -e Makefile ] && make dist ) || echo "CLEAR"  && ./configure && make && popd &&
 				python setup.py install --prefix=../ && popd && 
 			for i in $(find lib* -name "*.so"); do ln -s $i; done
 			for i in $(find lib* -name "*.py"); do ln -s $i; done
-		popd
-		pushd ../tools &&
-			for i in $(find ../an-response-generator/tools/lib* -name "*.so"); do ln -s $i; done
-			for i in $(find ../an-response-generator/tools/lib* -name "*.py"); do ln -s $i; done
 		popd
 		;;
 	*)
