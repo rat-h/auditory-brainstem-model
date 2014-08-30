@@ -121,7 +121,7 @@ def plot_stimwave(stimname,isright=False):
 	stimdur = int(wave.size)
 	plt.plot(np.arange(stimdur)/100.,wave,"k-")
 	
-def calculate_spikerate(stimname,population,nbins=100,binsize=1.,mrange=None):
+def calculate_spikerate(stimname,population,nbins=100,binsize=1.,mrange=None, tstim=None):
 	check_stimname(stimname)
 	sprate = np.zeros(nbins, dtype=np.dtype('i'))
 	poplist = getpoplist(stimname,population,mrange)
@@ -130,23 +130,27 @@ def calculate_spikerate(stimname,population,nbins=100,binsize=1.,mrange=None):
 		stimlist[stimname][4].seek(xvec)
 		xspk = pickle.load(stimlist[stimname][4])
 		xspk = xspk[2][ np.where( xspk[2] < float(nbins*binsize) ) ]
+		if tstim != None and (type(tstim) is float or type(tstim) is int):
+			xspk = xspk[ np.where( xspk >= float(tstim) ) ]
+			xspk -= float(tstim)
+		if len(xspk) <= 0: continue
 		xspk = np.floor(xspk/binsize).astype(int)
 		sprate[ xspk ] += 1
 	return sprate,len(poplist)
 
-def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,normalaize=False):
+def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,normalaize=False,tstim=None):
 	if type(popname) is tuple or type(popname) is list:
 		sprate = np.zeros(nbins, dtype=np.dtype('i'))
 		xcount = 0
 		for pname in popname:
-			nspr, nsize = calculate_spikerate(stimname,pname,nbins,binsize,mrange)
+			nspr, nsize = calculate_spikerate(stimname,pname,nbins,binsize,mrange,tstim)
 			sprate += nspr
 			xcount += nsize
 	else:
-		sprate, xcount = calculate_spikerate(stimname,popname,nbins,binsize,mrange)
+		sprate, xcount = calculate_spikerate(stimname,popname,nbins,binsize,mrange,tstim)
 	if normalaize:
 		sprate /= xcount
-	plt.bar(np.arange(nbins)*binsize+0.5*binsize,sprate,0.5,color="k")
+	plt.bar(np.arange(nbins)*binsize+0.5*binsize,sprate,0.5*binsize,color="k")
 
 def plot_stimrate(popname,mrange=None,stimuli=None,m0a=False):
 	if stimuli == None :

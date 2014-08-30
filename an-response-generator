@@ -362,7 +362,7 @@ if __name__ == "__main__":
 		frequency_range = cargs.frequency_range
 		if not cargs.uniform:
 			frequency_range		= np.log10(cargs.frequency_range)
-		portion_types = np.array(cargs.portion_types)
+		portion_types = np.array(cargs.portion_types,dtype=float)
 		portion_types /= np.sum( cargs.portion_types )
 		##############################################################
 		# Print
@@ -466,7 +466,7 @@ if __name__ == "__main__":
 		frequency_range = cargs.frequency_range
 		if not cargs.uniform:
 			frequency_range		= np.log10(cargs.frequency_range)
-		portion_types = np.array(cargs.portion_types)
+		portion_types = np.array(cargs.portion_types,dtype=float)
 		portion_types /= np.sum( cargs.portion_types )
 		##############################################################
 		# Print
@@ -563,7 +563,7 @@ if __name__ == "__main__":
 		frequency_range = cargs.frequency_range
 		if not cargs.uniform:
 			cargs.frequency_range		= np.log10(cargs.frequency_range)
-		cargs.portion_types = np.array(cargs.portion_types)
+		cargs.portion_types = np.array(cargs.portion_types,dtype=float)
 		cargs.portion_types /= np.sum( cargs.portion_types )
 		##############################################################
 		# Print
@@ -676,7 +676,7 @@ if __name__ == "__main__":
 		frequency_range = cargs.frequency_range
 		if not cargs.uniform:
 			cargs.frequency_range		= np.log10(cargs.frequency_range)
-		cargs.portion_types = np.array(cargs.portion_types)
+		cargs.portion_types = np.array(cargs.portion_types,dtype=float)
 		cargs.portion_types /= np.sum( cargs.portion_types )
 		##############################################################
 		# Print

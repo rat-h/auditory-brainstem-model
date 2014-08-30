@@ -80,7 +80,7 @@ def presetstimuli(config):
 		cmd += " --frequency-range %g %g"%tuple(config["GENERAL"]["freqrange"])
 		cmd += " --number-hair-cells %d "%(config["GENERAL"]["nhcell"])
 		cmd += " --fiber-per-hcell %d"%(config["GENERAL"]["nfibperhcell"])
-		cmd += " --portion-types %f %f %f"%tuple(config["GENERAL"]["fibersproportion"])
+		cmd += " --portion-types {} {} {}".format(config["GENERAL"]["fibersproportion"][0],config["GENERAL"]["fibersproportion"][1],config["GENERAL"]["fibersproportion"][2])
 		cmd += " -s"
 		if config["GENERAL"]["uniform"]:
 			cmd += " -u"
@@ -128,6 +128,9 @@ def presetstimuli(config):
 				return None
 			stimobj.append(params['stimdur'] * 1000.)
 		else:
+			config["GENERAL"]["fibersproportion"] = np.array(config["GENERAL"]["fibersproportion"],dtype=float)
+			config["GENERAL"]["fibersproportion"] /= np.sum(config["GENERAL"]["fibersproportion"])
+			#config["GENERAL"]["fibersproportion"] = tuple( config["GENERAL"]["fibersproportion"] )
 			with open(stimobj[0]) as fd:
 				params	=  pickle.load(fd)
 			if config["GENERAL"]["uniform"] != params["uniform"]:
@@ -139,7 +142,7 @@ def presetstimuli(config):
 			elif params["fiber-per-hcell"]  != config["GENERAL"]["nfibperhcell"]:
 				if stimgenerate(config,stim): return None
 			elif tuple(params["portion-types"])  != tuple(config["GENERAL"]["fibersproportion"]):
-				if stimgenerate(config,stim): return None
+					if stimgenerate(config,stim): return None
 			elif not 'stimdur' in params :
 				logging.error("couldn't find stimulus duration in %s"%stimobj[0])
 				return None

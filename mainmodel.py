@@ -44,8 +44,9 @@ config["CONF"]["threads"]	= 4
 config["CONF"]["collect"]	= False
 config["CONF"]["graphs"]	= False
 config["CONF"]["view"]		= False
-#config["CONF"]["view-exp"]	= None
+config["CONF"]["stat"]		= False
 config["CONF"]["conf-exp"]	= None
+
 
 config["CONF"]["mpi"]		= False
 
@@ -71,10 +72,12 @@ for arg in sys.argv:
 		config["CONF"]["collect"]	= True
 	if arg == "--graphs":
 		config["CONF"]["graphs"]	= True
-	if arg[:len("--config-exp=")] == "--config-exp=":
-		config["CONF"]["conf-exp"]	= arg[len("--config-exp="):]
 	#if arg == "--view":
 		#config["CONF"]["view"]		= True
+	if arg == "--stat":
+		config["CONF"]["stat"]		= True
+	if arg[:len("--config-exp=")] == "--config-exp=":
+		config["CONF"]["conf-exp"]	= arg[len("--config-exp="):]
 	if arg == "-mpi":
 		config["CONF"]["mpi"]		= True
 
@@ -197,13 +200,14 @@ else:
 
 
 logging.info("READ CONFIG FILE \'%s\':"%config["CONF"]["file"])
+config["GENERAL"]["CONFIGHASH"]		= hashsum(config["CONF"]["file"])
+logging.info(" > Checksum %s"%config["GENERAL"]["CONFIGHASH"])
+
 config = confreader( config["CONF"]["file"], nspace=config )
 if config == {} or config == None:
 	logging.error("Couldn't read config file '%s' "%config)
 	pcexit(1)
 
-config["GENERAL"]["CONFIGHASH"]		= hashsum(config["CONF"]["file"])
-logging.info(" > Checksum %s"%config["GENERAL"]["CONFIGHASH"])
 logging.info(" > DONE")
 
 config = checkgeneralsettings( config )
@@ -454,7 +458,8 @@ if config["GENERAL"]["system"] == 'nrn' and config["CONF"]["run"]:
 
 if  config["CONF"]["collect"] or \
 	config["CONF"]["graphs"]  or \
-	config["CONF"]["view"]:
+	config["CONF"]["view"]    or \
+	config["CONF"]["stat"]:
 	config = collect(config)
 	if config == {} or config == None: 
 		logging.error("ABBORT!")
@@ -462,10 +467,12 @@ if  config["CONF"]["collect"] or \
 
 
 if config["CONF"]["conf-exp"] != None:
-	logging.info("Read expation for graphs: %s"%config["CONF"]["conf-exp"])
+	logging.info("Read expation for graphs, stat and view from %s"%config["CONF"]["conf-exp"])
 	# Add here cleaning for all section in configuration file, which active
 	# in processing of simulation result: 'GRAPHS', 'VIEW' and so on......
-	config['GRAPHS'] = {}
+	if 'GRAPHS' in config: config['GRAPHS'] = {}
+	if 'STAT'   in config: config['STAT'] = {}
+	#if 'VIEW'   in config: config['VIEW'] = {}
 	config = confreader( config["CONF"]["conf-exp"], nspace=config )
 	if config == {} or config == None:
 		logging.error("ABBORT!")
@@ -475,6 +482,8 @@ if config["CONF"]["graphs"] and 'GRAPHS' in config:
 	from tools.graphs import *
 	logging.debug("Default Module \'tools.graphs\' has been imported successfully")
 	if 'import' in config['GRAPHS'] :
+		if type(config['GRAPHS']['import']) is str:
+			config['GRAPHS']['import'] = [ config['GRAPHS']['import'] ]
 		for cmd in config['GRAPHS']['import']:
 			try : exec cmd
 			except BaseException as e:
@@ -507,4 +516,54 @@ if config["CONF"]["graphs"] and 'GRAPHS' in config:
 					logging.error("Coudn't execute %s: %s"%(cmd,e) )
 					pcexit(1)
 			logging.info("Figure %s is done"%figname)
+
+if config["CONF"]["stat"] and 'STAT' in config:
+	from tools.stat import *
+	logging.debug("Default Module \'tools.stat\' has been imported successfully")
+	if 'import' in config['STAT'] :
+		config['STAT']['import'] = [ config['STAT']['import'] ]
+		for cmd in config['STAT']['import']:
+			try : exec cmd
+			except BaseException as e:
+				logging.error("Coudn't import module %s: %s"%(cmd,e) )
+				pcexit(1)
+			logging.debug("Module \'%s\' has been imported successfully"%cmd)
+	if not 'file' in config['STAT']:
+		logging.error("there is no file option in STAT option")
+		pcexit(1)
+	if not 'delimiter' in config['STAT']:
+		config['STAT']['delimiter'] = '\t'
+		logging.warning(" > STAT section has not delimiter option. Set it up by default: TAB SYMBOL")
+	if not 'records' in config['STAT']:
+		logging.error("Coudn't find option records in STAT section" )
+		pcexit(1)
+	if type(config['STAT']['records']) is str:
+		config['STAT']['records'] = [ config['STAT']['records'] ]
+	if not (type(config['STAT']['records']) is list or type(config['STAT']['records']) is tuple):
+		logging.error("Wrong type of records option in STAT section" )
+		pcexit(1)
+	line = "ID"
+	for rec in config['STAT']['records']: line += config['STAT']['delimiter']+rec
+	line += '\n'
+	with open(config['STAT']['file'],'a') as fd: fd.write(line)
+	line = "{}".format(config["GENERAL"]["CONFIGHASH"])
+	for rec in config['STAT']['records']:
+		if rec in config['STAT']:
+			logging.debug("STAT > execute "+"stat_ret="+config['STAT'][rec])
+			try : exec "stat_ret="+config['STAT'][rec]
+			except BaseException as e:
+				logging.error("Couldn't execute command {}: {}".format("stat_ret="+config['STAT'][rec],e) )
+				pcexit(1)
+			line += config['STAT']['delimiter']+"{}".format(stat_ret)
+		else:
+			logging.warning("Couldn't find {} option in STAT option, try to execute just option value") 
+			logging.debug("STAT > execute "+"stat_ret="+rec)
+			try : exec "stat_ret="+rec
+			except BaseException as e:
+				logging.error("Couldn't execute command {}: {}".format("stat_ret="+rec,e) )
+				pcexit(1)
+			line += config['STAT']['delimiter']+"{}".format(stat_ret)
+	line += '\n'
+	with open(config['STAT']['file'],'a') as fd: fd.write(line)
+	logging.info("STATISTICS is done")
 pcexit(0)
