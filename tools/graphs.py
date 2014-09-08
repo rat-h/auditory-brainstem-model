@@ -150,7 +150,7 @@ def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,
 		sprate, xcount = calculate_spikerate(stimname,popname,nbins,binsize,mrange,tstim)
 	if normalaize:
 		sprate /= xcount
-	plt.bar(np.arange(nbins)*binsize+0.5*binsize,sprate,0.5*binsize,color="k")
+	plt.bar(np.arange(nbins)*binsize-0.45*binsize,sprate,0.9*binsize,color="k")
 
 def plot_stimrate(popname,mrange=None,stimuli=None,m0a=False):
 	if stimuli == None :
