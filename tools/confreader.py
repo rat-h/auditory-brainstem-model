@@ -7,7 +7,7 @@ import scipy as sp
 from tools.commonvariables import config
 
 def nameresolv(item,nspace):
-	copir = item.split("@")
+	copir = item.split("$")
 	if len(copir) < 2: 
 		res = item
 	else:
@@ -19,9 +19,13 @@ def nameresolv(item,nspace):
 			if len(var) != 2: return None
 			if not var[0] in nspace : return None
 			if not var[1] in nspace[var[0]] : return None
-			res += 'nspace["%s"]["%s"]'%tuple(var)
-			#res += 'config["%s"]["%s"]'%tuple(var)
-	copir = res.split("$")
+			if type(nspace[var[0]][var[1]]) is types.LambdaType and nspace[var[0]][var[1]].__name__ == '<lambda>':
+				res += 'nspace["%s"]["%s"]'%tuple(var)
+				#res += 'config["%s"]["%s"]'%tuple(var)
+			else:
+				res += str(nspace[var[0]][var[1]])
+				#res += 'config["%s"]["%s"]'%tuple(var)
+	copir = res.split("@")
 	if len(copir) < 2: return res
 	res = ''
 	for pre,var in map(None,copir[::2],copir[1::2]):
@@ -31,11 +35,7 @@ def nameresolv(item,nspace):
 		if len(var) != 2: return None
 		if not var[0] in nspace : return None
 		if not var[1] in nspace[var[0]] : return None
-		if type(nspace[var[0]][var[1]]) is types.LambdaType and nspace[var[0]][var[1]].__name__ == '<lambda>':
-			res += 'nspace["%s"]["%s"]'%tuple(var)
-			#res += 'config["%s"]["%s"]'%tuple(var)
-		else:
-			res += str(nspace[var[0]][var[1]])
+		res += 'nspace["%s"]["%s"]'%tuple(var)
 	return unicode(res)
 
 def confreader(filename,nspace = {}):

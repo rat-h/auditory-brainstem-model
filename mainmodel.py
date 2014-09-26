@@ -508,6 +508,8 @@ if config["CONF"]["graphs"] and 'GRAPHS' in config:
 				if figname == None:
 					logging.error("couldn't find Figure with same object %s in GRAPHS section"%fig)
 					pcexit(1)
+			if type(figobj) is str:
+				figobj = [ figobj ]
 			for cmd in figobj:
 				logging.debug("Graph > execute %s"%cmd)
 				try:
