@@ -76,10 +76,10 @@ def rampedsin(frequency = 1e3, duration = 0.1, rampup = 5e-3, rampdown = 5e-3, d
 	"""
 	rampedsin generates ramped sinusoidal stimulus.
 	"""
-	normcoeff =np.sqrt(2)*20e-6*10.0**(float(stimdb)/20.)
+	normcoeff =np.sqrt(2)*20e-6*10.0**(float(np.abs(stimdb))/20.)
 	t = np.linspace(0, duration, duration * smpfreq+1)
 	ramp = (t/rampup)*(t < rampup)+1.0*(t >= rampup)*(t <= duration-rampdown)+(duration-t)/rampdown*(t > duration-rampdown)
-	actualdata = np.sin(2*np.pi*frequency*t)*ramp*normcoeff
+	actualdata = float(np.sign(stimdb))*np.sin(2*np.pi*frequency*t)*ramp*normcoeff
 	result = np.zeros(delay*smpfreq+actualdata.size+tail*smpfreq)
 	result[delay*smpfreq:delay*smpfreq+actualdata.size] =actualdata
 	return result
@@ -102,7 +102,7 @@ def SAMnoise(frequency=500, duration=0.1, rampup=5e-3, rampdown=5e-3, delay=0.01
 	normcoeff =np.sqrt(2)*20e-6*10.0**(float(np.abs(stimdb))/20.)
 	t = np.linspace(0, duration, duration * smpfreq+1)
 	ramp = (t < rampup)*(t/rampup)+(t >= rampup)*(t <= duration-rampdown)+(t > duration-rampdown)*(duration-t)/rampdown
-	modulation = ((1-moddip/2.)-moddip*np.sin(2*np.pi*frequency*t)/2.)*ramp*np.sign(stimdb)
+	modulation = float(np.sign(stimdb))*((1-moddip/2.)-moddip*np.sin(2*np.pi*frequency*t)/2.)*ramp
 	noise = np.random.rand(t.size)*2.-1.
 	actualdata = noise*modulation*normcoeff
 	result = np.zeros(delay*smpfreq+actualdata.size+tail*smpfreq)
@@ -659,6 +659,7 @@ if __name__ == "__main__":
 				pickle.dump(lihc,fd)
 				pickle.dump(rihc,fd)
 		if not cargs.view: sys.exit(0)
+		cargs.no_graphics = False
 
 #######################################################################
 #                                                                     #
@@ -909,8 +910,8 @@ if __name__ == "__main__":
 		if cargs.no_graphics: exit(0)
 		
 		import matplotlib.pyplot as plt
-		plt.suptitle("FILE:%s\nSTIMULUS:%s\nCOMMENTS:%s"%(fname,params['stimtype'],params['comments']) )
-		xax = np.arange(0,params["stimdur"]*1000-0.01,0.01)
+		plt.suptitle("FILE:%s\nSTIMULUS:%s\nCOMMENTS:%s"%(fname,params['stimtype'],params['comment']) )
+		xax = np.arange(0,params["stimdur"]*1000+0.01,0.01)
 		#DB>
 		print xax.size,lftwav.size
 		#<DB
