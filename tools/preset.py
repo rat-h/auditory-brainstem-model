@@ -1,7 +1,7 @@
 """
 Preset procedure for configuration
 """
-import sys,os, hashlib, types, glob
+import sys,os, hashlib, types, glob, angen
 try:
 	import cPickle as pickle
 except:
@@ -19,75 +19,54 @@ def checkgeneralsettings(config):
 		logging.error("Couldn't find network filename in GENERAL section")
 		return None
 	if not "pyextrapath" in config["GENERAL"]:
-		logging.error("Couldn't find py extantion path in GENERAL section")
+		logging.error("Couldn't find pyextantion path in GENERAL section")
 		return None
-	if not "nhcell" in config["GENERAL"]:
-		logging.error("Couldn't find nhcell in GENERAL section")
+	if not "AUDITORY NERVE" in config :
+		logging.error("Couldn't find AUDITORY NERVE section")
 		return None
-	if not type(config["GENERAL"]["nhcell"]) is int:
-		logging.error("Wrong type of nhcell paramter in GENERAL section")
+	if not 'anconfig' in config["AUDITORY NERVE"]:
+		logging.error("Couldn't find 'anconfig' option in AUDITORY NERVE section")
 		return None
-	if not "freqrange"  in config["GENERAL"]:
-		logging.error("Couldn't find frequencies range in GENERAL section")
-		return None
-	if not (type(config["GENERAL"]["freqrange"]) is list or type(config["GENERAL"]["freqrange"]) is tuple):
-		logging.error("Wrong type of freqrange paramter in GENERAL section")
-		return None
-	if len(config["GENERAL"]["freqrange"]) != 2:
-		logging.error("Wrong size of freqrange paramter in GENERAL section")
-		return None
-	if not ( type(config["GENERAL"]["freqrange"][0]) is int or type(config["GENERAL"]["freqrange"][0]) is float ) and \
-		    ( type(config["GENERAL"]["freqrange"][1]) is int or type(config["GENERAL"]["freqrange"][1]) is float ):
-		logging.error("Wrong size of freqrange paramter in GENERAL section")
-		return None
-		
-	if not "nfibperhcell" in config["GENERAL"]:
-		logging.error("Couldn't find nfibperhcell in GENERAL section")
-		return None
-	if not type(config["GENERAL"]["nfibperhcell"]) is int:
-		logging.error("Wrong type of nfibperhcell paramter in GENERAL section")
-		return None
-
-	if not "fibersproportion"  in config["GENERAL"]:
-		logging.error("Couldn't find fiber types proportions in GENERAL section")
-		return None
-	if not (type(config["GENERAL"]["fibersproportion"]) is list or type(config["GENERAL"]["fibersproportion"]) is tuple):
-		logging.error("Wrong type of fibersproportion paramter in GENERAL section")
-		return None
-	if len(config["GENERAL"]["fibersproportion"]) != 3:
-		logging.error("Wrong size of fibersproportion paramter in GENERAL section")
-		return None
-	if not	( type(config["GENERAL"]["fibersproportion"][0]) is int or type(config["GENERAL"]["fibersproportion"][0]) is float ) and \
-		    ( type(config["GENERAL"]["fibersproportion"][1]) is int or type(config["GENERAL"]["fibersproportion"][1]) is float ) and \
-		    ( type(config["GENERAL"]["fibersproportion"][2]) is int or type(config["GENERAL"]["fibersproportion"][2]) is float ):
-		logging.error("Wrong size of fibersproportion paramter in GENERAL section")
-		return None
-	
-	if not "distribution" in config["GENERAL"]:
-		config["GENERAL"]["distribution"] = 'log10'
-	config["GENERAL"]["uniform"] = (config["GENERAL"]["distribution"] == 'uniform')
+	if config["AUDITORY NERVE"]["anconfig"] == None:
+		config["AUDITORY NERVE"]["anconfig"] = gen_anconfig(config)
+		if config["AUDITORY NERVE"]["anconfig"] == None : return None
+	if type (config["AUDITORY NERVE"]["anconfig"]) is str :
+		config["AUDITORY NERVE"]["anconfig"] = gen_anconfig(config)
+		if config["AUDITORY NERVE"]["anconfig"] == None : return None
 	logging.info(" > DONE")
 	return config
 
+def gen_anconfig(config):
+	if not "AUDITORY NERVE" in config :
+		logging.error("Couldn't find AUDITORY NERVE section")
+		return None
+	if not "nhcell" in config["AUDITORY NERVE"]:
+		logging.error("Couldn't find nhcell in AUDITORY NERVE section")
+		return None
+	if not type(config["AUDITORY NERVE"]["nhcell"]) is int:
+		logging.error("Wrong type of nhcell paramter in AUDITORY NERVE section")
+		return None
+	if not "cell distribution"  in config["AUDITORY NERVE"]:
+		logging.error("Couldn't find cell distribution function in AUDITORY NERVE section")
+		return None
+	if not ( type(config["AUDITORY NERVE"]["cell distribution"]) is types.LambdaType and config["AUDITORY NERVE"]["cell distribution"].__name__ == '<lambda>'):
+		logging.error("Wrong type: cell distribution option is not a function in AUDITORY NERVE section")
+		return None
+	if not "nfibperhcell" in config["AUDITORY NERVE"]:
+		logging.error("Couldn't find nfibperhcell in AUDITORY NERVE section")
+		return None
+	if not (type(config["AUDITORY NERVE"]["nfibperhcell"]) is int or (type(config["AUDITORY NERVE"]["nfibperhcell"]) is types.LambdaType and config["AUDITORY NERVE"]["nfibperhcell"].__name__ == '<lambda>') ):
+		logging.error("Wrong type of nfibperhcell paramter in AUDITORY NERVE section")
+		return None
+	if not "fiber distribution"  in config["AUDITORY NERVE"]:
+		logging.error("Couldn't find fiber distribution function in AUDITORY NERVE section")
+		return None
+	if not ( type(config["AUDITORY NERVE"]["fiber distribution"]) is types.LambdaType and config["AUDITORY NERVE"]["fiber distribution"].__name__ == '<lambda>'):
+		logging.error("Wrong type: fiber distribution option is not a function in AUDITORY NERVE section")
+		return None
+	return angen.genconf(config["AUDITORY NERVE"])
+		
 def presetstimuli(config):
-	def stimgenerate(config,stim):
-		cmd = config["STIMULI"]['prog']+" "+config["STIMULI"][stim][1]['stimtype']
-		for param in config["STIMULI"][stim][1]:
-			if param == 'stimtype' or param == "frequency-range" or param == "number-hair-cells": continue
-			if param == 'fiber-per-hcell' or param == "portion-types" : continue
-			if param == 'inputfile' : cmd += " "+str(+config["STIMULI"][stim][1][param])
-			cmd += " --"+param+"="+str(+config["STIMULI"][stim][1][param])
-		cmd += " --frequency-range %g %g"%tuple(config["GENERAL"]["freqrange"])
-		cmd += " --number-hair-cells %d "%(config["GENERAL"]["nhcell"])
-		cmd += " --fiber-per-hcell %d"%(config["GENERAL"]["nfibperhcell"])
-		cmd += " --portion-types {} {} {}".format(config["GENERAL"]["fibersproportion"][0],config["GENERAL"]["fibersproportion"][1],config["GENERAL"]["fibersproportion"][2])
-		cmd += " -s"
-		if config["GENERAL"]["uniform"]:
-			cmd += " -u"
-		cmd += " "+config["STIMULI"][stim][0]
-		logging.info(" > Regenerate by command: %s"%(cmd))
-		return os.system(cmd)
-
 	logging.info("CHECK STIMULI FILES:")
 	if not "STIMULI" in config:
 		logging.error("Couldn't find STIMULI section")
@@ -100,10 +79,7 @@ def presetstimuli(config):
 	if not (type(config["STIMULI"]['stimuli']) is list or type(config["STIMULI"]['stimuli']) is tuple):
 		logging.error("Wrong type of stimuli paramter in the STIMULI section")
 		return None
-	if not 'prog' in config["STIMULI"]:
-		logging.warning("use prog by default")
-		config["STIMULI"]['prog'] = "./an-response-generator"
-
+	an_gen = angen.angen()
 	for stim in config["STIMULI"]['stimuli']:
 		if type(stim) is str:
 			if not stim in config["STIMULI"]:
@@ -118,42 +94,12 @@ def presetstimuli(config):
 					stimname = names
 					break
 			
-		if not os.access(stimobj[0],os.R_OK):
-			logging.warning("Couldn't find stimulus file %s"%(stimobj[0]))
-			if stimgenerate(config,stim): return None
-			with open(stimobj[0]) as fd:
-				params	=  pickle.load(fd)
-			if not 'stimdur' in params :
-				logging.error("couldn't find stimulus duration in %s"%stimobj[0])
-				return None
-			stimobj.append(params['stimdur'] * 1000.)
-		else:
-			config["GENERAL"]["fibersproportion"] = np.array(config["GENERAL"]["fibersproportion"],dtype=float)
-			config["GENERAL"]["fibersproportion"] /= np.sum(config["GENERAL"]["fibersproportion"])
-			#config["GENERAL"]["fibersproportion"] = tuple( config["GENERAL"]["fibersproportion"] )
-			with open(stimobj[0]) as fd:
-				params	=  pickle.load(fd)
-			if config["GENERAL"]["uniform"] != params["uniform"]:
-					if stimgenerate(config,stim): return None
-			elif tuple(config["GENERAL"]["freqrange"]) != tuple(params["frequency-range"]):
-				if stimgenerate(config,stim): return None
-			elif params["number-hair-cells"] != config["GENERAL"]["nhcell"]:
-				if stimgenerate(config,stim): return None
-			elif params["fiber-per-hcell"]  != config["GENERAL"]["nfibperhcell"]:
-				if stimgenerate(config,stim): return None
-			elif tuple(params["portion-types"])  != tuple(config["GENERAL"]["fibersproportion"]):
-					if stimgenerate(config,stim): return None
-			elif not 'stimdur' in params :
-				logging.error("couldn't find stimulus duration in %s"%stimobj[0])
-				return None
-			stimobj.append(params['stimdur'] * 1000.)
-
-			for param in stimobj[1]:
-				if stimobj[1][param] != params[param]:
-					if stimgenerate(config,stim): return None
-					break
-			
-			else: logging.info( " > %s [dur: %f ms] .... OK"%(stimobj[0],stimobj[-1]))
+		repstruc = an_gen.check(stimobj[0],config["AUDITORY NERVE"]['anconfig'],stimobj[1],
+			(config["AUDITORY NERVE"]['__:hash:__'],config["STIMULI"]['__:hash:__']) )
+		if repstruc == None:
+			logging.error("ANGENERATOR returns an error")
+			return None
+		stimobj.append(repstruc["totaldur"]*1000.)
 		if not 'stimdur' in config["CONF"]:
 			config["CONF"]['stimdur'] = ["sd"]
 		config["CONF"]['stimdur'].append((stimname,stimobj[-1]))
@@ -166,22 +112,29 @@ def hashsum(filename):
 			m.update(chunk)
 	return m.hexdigest()
 
-def resolve2object(robj, xgid, ygid=None):
-	if type(robj) is str or type(robj) is int \
-	or type(robj) is float  or type(robj) is bool : return robj
+def resolve2object(robj, x1=None, x2=None, x3=None,x4=None,x5=None):
 	if type(robj) is tuple or type(robj) is list:
-		return [ resolve2object(subobj,xgid,ygid) for subobj in robj ]
-	if type(robj) is dict:
+		return [ resolve2object(subobj,x1,x2,x3,x4,x5) for subobj in robj ]
+	elif type(robj) is dict:
 		retobj = {}
 		for subobj in robj:
-			retobj[subobj] = resolve2object(robj[subobj],xgid,ygid)
+			retobj[subobj] = resolve2object(robj[subobj],x1,x2,x3,x4,x5)
 		return retobj
-	if type(robj) is types.LambdaType and robj.__name__ == '<lambda>':
-		if ygid == None:
-			return robj(xgid)
+	elif type(robj) is types.LambdaType and robj.__name__ == '<lambda>':
+		if x1 == None and x2 == None and x3 == None and x4 == None and x5 == None:
+			return robj()
+		elif x2 == None and x3 == None and x4 == None and x5 == None:
+			return robj(x1)
+		elif x3 == None and x4 == None and x5 == None:
+			return robj(x1,x2)
+		elif x4 == None and x5 == None:
+			return robj(x1,x2,x3)
+		elif x5 == None:
+			return robj(x1,x2,x3,x4)
 		else:
-			return robj(xgid,ygid)
-	return None
+			return robj(x1,x2,x3,x4,x5)
+	return robj
+	
 
 def popoffcet(gid,base,total):
 	if total < 2: return 0
@@ -196,13 +149,58 @@ def populationpreset( config ):
 	logging.info("PREPROCESSING POPULATIONS:")
 	sys.stderr.write("PREPROCESSING POPULATIONS:\n")
 	for population in config["POPULATIONS"]:
-		totalcells = reduce(lambda x,y: x+y[1],config["POPULATIONS"][population][1:],0)
+		if population == '__:hash:__': continue
+		#### CHECKING POPULATION RECORD ####
+		if len(config["POPULATIONS"][population]) < 3:
+			logging.error("Population {} has less than 3 items.".format(population))
+			return None
+		if config["POPULATIONS"][population][0] != None:
+			if not (type(config["POPULATIONS"][population][0]) is int or type(config["POPULATIONS"][population][0]) is list):
+				logging.error("Wrong format for hostnodes in population {}.".format(population))
+				return None
+		if not ( type(config["POPULATIONS"][population][1]) is int or 
+			(type(config["POPULATIONS"][population][1]) is types.LambdaType and 
+			 config["POPULATIONS"][population][1].__name__ == '<lambda>') ):
+			logging.error("Wrong format of population {}: number of cell should int or labda function".format(population))
+			return None
+		#### CHECKING EACH SUBPOPULATION ####
+		for tid,tcell in enumerate(config["POPULATIONS"][population][2:]):
+			if len(tcell) != 5:
+				logging.error("Wrong format of sub population record #{} in population {}: number of items should be 5".format(tid,population))
+				return None
+			if not type(tcell[0]) is str:
+				logging.error("Wrong format of sub population record #{} in population {}: first parameter should be a name of cellclass".format(tid,population))
+				return None
+			if not tcell[0] in config["CELLS"]['CellClasses']:
+				logging.error("Wrong format of sub population record #{} in population {}: Couldn't find cellclass '{}' in 'CellClass' list of CELLS section".format(tid,population,tcell[0]))
+				return None
+			if not tcell[0] in config["CELLS"]:
+				logging.error("Wrong format of sub population record #{} in population {}: Couldn't find cellclass '{}' in CELLS section".format(tid,population,tcell[0]))
+				return None
+			if not type(tcell[1]) is int:
+				logging.error("Wrong type of number gid per cell in subpopulation record #{} in population {}: Should be an integer".format(tid,population))
+				return None
+			if tcell[1] < 1:
+				logging.error("Wrong number gid per cell in subpopulation record #{} in population {}: Should be a positive integer above the zero".format(tid,population))
+				return None
+			if type(tcell[2]) is str or type(tcell[2]) is int or type(tcell[2]) is float:
+				tcell[2] = [ tcell[2] for cnt in xrange(tcell[1]) ]
+			if not (type(tcell[2]) is list or type(tcell[2]) is tuple):
+				logging.error("Wrong type of cell markers in subpopulation record #{} in population {}: list, tuple or int, float or str".format(tid,population))
+				return None
+			if len(tcell[2]) != tcell[1]:
+				logging.error("Wrong size of cell markers in subpopulation record #{} in population {}: should the same size as number gid percell".format(tid,population))
+				logging.error("Size of markers is {}; Number git per cell is {}".format(len(tcell[2]), tcell[1]))
+				return None
+		#### Get total number of cells in population ####		
+		totalcells = resolve2object(config["POPULATIONS"][population][1])
 		popbasegid = gid
 		pop =[]
 		gids = []
+		marks = []
 		for cid in xrange( totalcells ):
 			portion = np.zeros(len(config["POPULATIONS"][population]) - 1)
-			for tcell,tid in map(None,config["POPULATIONS"][population][1:],xrange(len(config["POPULATIONS"][population]) - 1)):
+			for tid,tcell in enumerate(config["POPULATIONS"][population][2:]):
 				if type(tcell[4]) is types.LambdaType and tcell[4].__name__ == '<lambda>':
 					portion[tid] = tcell[4]( popoffcet(gid,popbasegid,totalcells) )
 				elif type(tcell[4]) is float or type(tcell[4]) is int:
@@ -213,10 +211,22 @@ def populationpreset( config ):
 			portion /= np.sum(portion)
 			portion[1:] += portion[:-1]
 			rnd = np.random.rand()
-			ids = np.where( (portion-rnd) >= 0.)[0][0] + 1
+			ids = np.where( (portion-rnd) >= 0.)[0][0] + 2
 			tcell = config["POPULATIONS"][population][ids]
-			cls = tcell[0]+"("+reduce(lambda x,y:x+"%s=%s, "%(y,str(resolve2object(tcell[3][y],popoffcet(gid,popbasegid,totalcells)))),tcell[3],'')+"gid=%d, pc=pc)"%gid
-			#pop.append( [ 'n', population, gid - popbasegid, gid, cls] )			
+			#DB>>
+			#print population,":",tcell[0],"PARAMS=",tcell[3]
+			#print population,":",tcell[0],"PARAMS RESOLVED=",resolve2object(tcell[3])
+			#<<DB
+			cls = tcell[0]+"("\
+				+ reduce(lambda x,y:x+"{}={}, ".format(y,resolve2object(tcell[3][y],popoffcet(gid,popbasegid,totalcells))),tcell[3],'')\
+				+ "gid={}, pc=pc)".format(gid)
+			#DB>>
+			#print "::",cls
+			#<<DB
+			marks += tcell[2]
+			#DB>>
+			#print population,":",tcell[0],"MARKS=",tcell[2]
+			#<<DB
 			pop.append( [ 'n', gid, ids,cls] )
 			sys.stderr.write(".")
 			if not bool(cid%50):
@@ -224,9 +234,9 @@ def populationpreset( config ):
 			if tcell[2] == 1:
 				gids.append(gid)
 			else:
-				gids.append( (gid,gid+tcell[2]-1) )
-			gid += tcell[2]
-		config["POPULATIONS"][population].append( (popbasegid,gid) )
+				gids.append( (gid,gid+tcell[1]-1) )
+			gid += tcell[1]
+		config["POPULATIONS"][population].append( (popbasegid,gid,marks) )
 		with open(config["GENERAL"]['networkfilename'],"ab") as fd:
 			##write all basi id of this populstion first!!!!!
 			pickle.dump(['p',population,gids],fd)
@@ -239,6 +249,7 @@ def populationpreset( config ):
 def synapticpreset(config):
 	if not 'SYNAPSES' in config : return config
 	for syn in config['SYNAPSES']:
+		if syn == '__:hash:__': continue
 		if 'name' in config['SYNAPSES'][syn]:
 			logging.error("Synapses:%s has variable \'name\'"%(syn))
 			return None
@@ -258,6 +269,7 @@ def congen(config):
 	### Preset connections names
 	mindelay= None
 	for con in config['CONNECTIONS']:
+		if con == '__:hash:__': continue
 		conobj = config['CONNECTIONS'][con]
 		if len(conobj) != 10:
 				logging.error("number of parameters for option %s in section CONNECTIONS are wrong"%con)
@@ -292,26 +304,30 @@ def congen(config):
 			conobj[-1] = config["SYNAPSES"][conobj[-1]]
 	### Make temporal variables
 		if conobj[2]:
-			FROMH,TOH = conobj[1][-1]
-			FROML,TOL = conobj[0][-1]
-			presynpos = lambda hgid,lgid: popoffcet(lgid,FROML,TOL-FROML)
-			possynpos = lambda hgid,lgid: popoffcet(hgid,FROMH,TOH-FROMH)
-			getpregid = lambda hgid,lgid: lgid
-			getposgid = lambda hgid,lgid: (hgid, hgid-FROMH)
+			FROMH,TOH,MARKH = conobj[1][-1]
+			FROML,TOL,MARKL = conobj[0][-1]
+			presynpos  = lambda hgid,lgid: popoffcet(lgid,FROML,TOL-FROML)
+			possynpos  = lambda hgid,lgid: popoffcet(hgid,FROMH,TOH-FROMH)
+			getpregid  = lambda hgid,lgid: lgid
+			getposgid  = lambda hgid,lgid: (hgid, hgid-FROMH)
+			getpremark = lambda hgid,lgid: MARKL[lgid-FROML]
+			getposmark = lambda hgid,lgid: MARKH[hgid-FROMH]
 			postlist  = [ [] for x in xrange(FROMH,TOH) ]
 		else:
-			FROMH,TOH = conobj[0][-1]
-			FROML,TOL = conobj[1][-1]
+			FROMH,TOH,MARKH = conobj[0][-1]
+			FROML,TOL,MARKL = conobj[1][-1]
 			presynpos = lambda hgid,lgid: popoffcet(hgid,FROMH,TOH-FROMH)
 			possynpos = lambda hgid,lgid: popoffcet(lgid,FROML,TOL-FROML)
 			getpregid = lambda hgid,lgid: hgid
 			getposgid = lambda hgid,lgid: (lgid, lgid-FROML)
+			getpremark = lambda hgid,lgid: MARKH[hgid-FROMH]
+			getposmark = lambda hgid,lgid: MARKL[lgid-FROML]
 			postlist  = [ [] for x in xrange(FROML,TOL) ]			
 		conobj[3] = not conobj[3]
 		for hgid in xrange(FROMH,TOH):
 			syncnt = 0
 			if type(conobj[4]) is types.LambdaType and conobj[4].__name__ == '<lambda>':
-				totsyn = conobj[4](popoffcet(hgid,FROMH,TOH))
+				totsyn = conobj[4](popoffcet(hgid,FROMH,TOH),MARKH[hgid-FROMH])
 			elif type(conobj[4]) is float or type(conobj[4]) is int:
 				totsyn = int(conobj[4])
 			else:
@@ -339,24 +355,22 @@ def congen(config):
 				else:
 					lgid = np.random.randint(FROML, high=TOL)
 				if conobj[3] and mask[lgid-FROML]: continue
-				x = presynpos(hgid,lgid)
-				y = possynpos(hgid,lgid)
-				if not conobj[5](x,y) : continue
+				x  = presynpos(hgid,lgid)
+				xm = getpremark(hgid,lgid)
+				y  = possynpos(hgid,lgid)
+				ym = getposmark(hgid,lgid)
+				if not conobj[5](x,xm,y,ym) : continue
 				preid = getpregid(hgid,lgid)
 				postid, postoff = getposgid(hgid,lgid)
 				cond, delay =\
-					float( resolve2object(conobj[6],x,y) ),\
-					float( resolve2object(conobj[7],x,y) )
+					float( resolve2object(conobj[6],x,xm,y,ym) ),\
+					float( resolve2object(conobj[7],x,xm,y,ym) )
 				if mindelay == None: mindelay = delay
 				if mindelay > delay: mindelay = delay
-				#if 'name' in conobj[9]:
-					#pat = [ postid, conobj[9]['name'], conobj[8][0], conobj[8][1] ]
-				#else:
-					#pat = [ postid, resolve2object(conobj[9],x,y), conobj[8][0], conobj[8][1] ]
 				if 'name' in conobj[9]:
-					pat = [ postid, conobj[9]['name'], resolve2object(conobj[8][0],x,y), resolve2object(conobj[8][1],x,y) ]
+					pat = [ postid, conobj[9]['name'], resolve2object(conobj[8][0],x,xm,y,ym), resolve2object(conobj[8][1],x,xm,y,ym) ]
 				else:
-					pat = [ postid, resolve2object(conobj[9],x,y), resolve2object(conobj[8][0],x,y), resolve2object(conobj[8][1],x,y) ]
+					pat = [ postid, resolve2object(conobj[9],x,y), resolve2object(conobj[8][0],x,xm,y,ym), resolve2object(conobj[8][1],x,xm,y,ym) ]
 				#print pat
 				if len(postlist[postoff]) == 0:
 					postlist[postoff].append( pat + [ [(preid,cond,delay)] ])

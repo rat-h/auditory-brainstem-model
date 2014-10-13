@@ -107,14 +107,10 @@ def plot_stimwave(stimname,isright=False):
 		else:
 			ValueError("isright parameter has a wrong value")
 	with open(stimfile,"rb") as fd:
+		checksum = pickle.load(fd)
 		param = pickle.load(fd)
 		xxx = pickle.load(fd); del xxx
 		xxx = pickle.load(fd); del xxx
-		if not param['squeezed']:
-			xxx = pickle.load(fd); del xxx
-			xxx = pickle.load(fd); del xxx
-			xxx = pickle.load(fd); del xxx
-			xxx = pickle.load(fd); del xxx
 		wave = pickle.load(fd)
 		if isright:
 			wave = pickle.load(fd)

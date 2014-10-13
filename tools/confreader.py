@@ -1,4 +1,4 @@
-import os,sys,ConfigParser, types
+import os,sys,ConfigParser, types, hashlib
 import logging
 from ConfigParser import ConfigParser
 import numpy as np
@@ -38,7 +38,7 @@ def nameresolv(item,nspace):
 		res += 'nspace["%s"]["%s"]'%tuple(var)
 	return unicode(res)
 
-def confreader(filename,nspace = {}):
+def confreader(filename,nspace = {},sections=None):
 	"""
 	Reads file with configurations and returns dictionary with sections
 	and options. All options will be turned into python objects (DON'T 
@@ -64,8 +64,12 @@ def confreader(filename,nspace = {}):
 		config.read( filename )
 	except :
 		return nspace
-	for section in config.sections():
+	if sections == None:
+		sections = config.sections()
+	for section in sections:
 		if not section in nspace: nspace[section]={}
+		if not config.has_section(section): continue
+		if not '__:hash:__' in nspace[section]:nspace[section]['__:hash:__']=hashlib.sha256()
 		for option in config.options(section):
 			if option in nspace[section]:
 				logging.error("Name conflict option \'%s\' exists in section [\'%s\']"%(option,section) ) 
@@ -77,13 +81,18 @@ def confreader(filename,nspace = {}):
 				return {}
 			try:
 				exec "nspace[\""+section+"\"][\""+option+"\"]="+item
+				nspace[section]['__:hash:__'].update(xitem)
 			except :
 				logging.warning("Problem with reading configuration from the %s"%filename) 
 				logging.warning("Cannot read section: \'%s\', option: \'%s\'"%(section,option) )
 				logging.warning("        %s"%item)
 				logging.warning("!!!! SKIPPED IT !!!!")
 				pass
-			
+	# Calculate hash
+	for section in sections:
+		if not '__:hash:__' in nspace[section]:continue
+		nspace[section]['__:hash:__'] = nspace[section]['__:hash:__'].hexdigest()
+	
 	return nspace
 
 if __name__ == "__main__":

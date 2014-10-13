@@ -15,7 +15,9 @@ if os.path.basename(sys.argv[0]) == "nrniv" :
 			break
 else:
 	homedir = os.path.dirname(sys.argv[0])
+if homedir == "" : homedir = "./"
 sys.path.insert(0,homedir)
+sys.path.insert(0,homedir+"/tools")
 
 from tools.confreader import confreader as confreader
 from tools.preset import checkgeneralsettings, presetstimuli, presetnetwork, hashsum, presetmodules
@@ -203,16 +205,19 @@ logging.info("READ CONFIG FILE \'%s\':"%config["CONF"]["file"])
 config["GENERAL"]["CONFIGHASH"]		= hashsum(config["CONF"]["file"])
 logging.info(" > Checksum %s"%config["GENERAL"]["CONFIGHASH"])
 
-config = confreader( config["CONF"]["file"], nspace=config )
+logging.debug("Reading configuration for sections: {}".format(["GENERAL","AUDITORY NERVE","STIMULI","CELLS"]))
+config = confreader( config["CONF"]["file"], nspace=config, sections = ["GENERAL","AUDITORY NERVE","STIMULI","CELLS"] )
 if config == {} or config == None:
-	logging.error("Couldn't read config file '%s' "%config)
+	logging.error("Couldn't read section {} from config file '{}' ".format(["GENERAL","AUDITORY NERVE","STIMULI","CELLS"],config))
 	pcexit(1)
-
 logging.info(" > DONE")
 
 config = checkgeneralsettings( config )
 if config == None: pcexit(1)
 
+#DB>>
+#exit(0)
+#<<DB
 
 logging.info("ADDING THE PATHS:")
 if type(config["GENERAL"]["pyextrapath"]) is str:
@@ -229,6 +234,13 @@ if config == None or config == {} :
 	logging.error("ABBORT!")
 	pcexit(1)
 
+logging.debug("Reading configuration for sections: {}".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD"]))
+config = confreader( config["CONF"]["file"], nspace=config, sections = ["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD"] )
+if config == {} or config == None:
+	logging.error("Couldn't read section {} from config file '{}' ".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD"],config))
+	pcexit(1)
+logging.info(" > DONE")
+
 if config["GENERAL"]["NODEID"] == 0:
 	config = presetnetwork( config )
 	if config == None or config == {} :
@@ -241,7 +253,8 @@ if config["GENERAL"]["NODEID"] == 0:
 else:
 	if not 'networkfilename' in config["GENERAL"]:
 		logging.error("There is no networkfilename option in GENERAL section ")
-		pcexit(1)		
+		pcexit(1)
+	attemps_cnt = 0
 	while True:
 		if os.access(config["GENERAL"]['networkfilename'],os.R_OK):
 			with open(config["GENERAL"]['networkfilename'],"rb") as fd:
@@ -254,13 +267,52 @@ else:
 		else:
 			logging.warning(" > Couldn't find network file %s. Wait!"%config["GENERAL"]['networkfilename'])
 		time.sleep(5)
+		attemps_cnt += 1
+		if attemps_cnt > 12:
+			logging.error("Stuck more than 1 min!")
+			pcexit(1)
 
+logging.debug("CHECK CELL CLASSES")
+if not "CellClasses" in config["CELLS"]:
+	logging.error('Cannot find "CellClasses" option in the CELLS option')
+	pcexit(1)
+if type (config["CELLS"]["CellClasses"]) is str:
+	config["CELLS"]["CellClasses"] = [ config["CELLS"]["CellClasses"] ]
+if not( type (config["CELLS"]["CellClasses"]) is tuple or type (config["CELLS"]["CellClasses"]) is list):
+	logging.error('Cannot find "CellClasses" option in the CELLS section')
+	pcexit(1)
+for cellclass in config["CELLS"]["CellClasses"]:
+	if not cellclass in config["CELLS"]:
+		logging.error('Cannot find cell class {} option in the CELLS section'.format(cellclass))
+		pcexit(1)
+	if not type (config["CELLS"][cellclass]) is str:
+		logging.error('Wrong type of cell class {} option in the CELLS section'.format(cellclass))
+		pcexit(1)
+	if config["GENERAL"]["system"] == 'nrn' :
+		try:
+			exec config["CELLS"][cellclass]+" as {}".format(cellclass)
+		except BaseException as e:
+				logging.error("Coudn't import cell {}".format(cellclass))
+				logging.error("Exception {}".format(e))
+				pcexit(1)
+		logging.info(" > {} is successfully imported".format(cellclass) )
+	else:
+		logging.info(" > Couldn't check CellClass {}: My Python CORE is {}".format(cellclass,config["GENERAL"]["system"]))
+		
 if config["CONF"]["preset"] : pcexit(0)
 
 ########################################################################
 #                          SIMULATOR!!!!!!                             #
 #                                                                      #
 ########################################################################
+
+logging.debug("Reading configuration for sections: {}".format(["SIMULATION"]))
+config = confreader( config["CONF"]["file"], nspace=config, sections = ["SIMULATION"] )
+if config == {} or config == None:
+	logging.error("Couldn't read section {} from config file '{}' ".format(["SIMULATION"],config))
+	pcexit(1)
+logging.info(" > DONE")
+
 
 if config["CONF"]["run"]:
 	if config["GENERAL"]["system"] == 'python' :
@@ -271,16 +323,6 @@ if config["CONF"]["run"]:
 
 	#Need for NSG portal
 	h.load_file("stdgui.hoc")
-
-	logging.info("IMPORTING CELL CLASSES ")
-	for celltype in config["CELLS"]["CellImport"]:
-		try:
-			exec config["CELLS"]["CellImport"][celltype]
-		except BaseException as e:
-				logging.error("Coudn't import cell %s"%celltype)
-				logging.error("Exception %s"%e)
-				pcexit(1)
-		logging.info(" > %s is imported"%celltype)
 
 
 	cells,synapses,netcons,recorders = [], [], [], []
@@ -464,7 +506,14 @@ if  config["CONF"]["collect"] or \
 	if config == {} or config == None: 
 		logging.error("ABBORT!")
 		pcexit(1)
+else: pcexit(0)
 
+logging.debug("Reading configuration for sections: {}".format(["GRAPHS","VIEW","STAT"]))
+config = confreader( config["CONF"]["file"], nspace=config, sections = ["GRAPHS","VIEW","STAT"] )
+if config == {} or config == None:
+	logging.error("Couldn't read section {} from config file '{}' ".format(["GRAPHS","VIEW","STAT"],config))
+	pcexit(1)
+logging.info(" > DONE")
 
 if config["CONF"]["conf-exp"] != None:
 	logging.info("Read expation for graphs, stat and view from %s"%config["CONF"]["conf-exp"])

@@ -13,117 +13,102 @@ class spklin():
 	Class spklin reads files with output auditory model and provides
 	NetCons as a spike sources to netcons
 	"""
-	def __init__(self,nhcell=None, nfibpercell = None,isright = False, gid = None, pc=None):
+	def __init__(self, anconfig=None, isright = False, gid = None, pc=None):
 		self.isright = bool(isright)
-		self.nhcell, self.nfibpercell = nhcell, nfibpercell
+		self.anconfig = anconfig
 		###### Make source sections ######	
-		if nhcell == None or nfibpercell == None:
+		if anconfig == None:
 			self.sections	= None
 			self.ntotal		= None
 		else:
-			self.ntotal		= self.nhcell * self.nfibpercell
-			self.sections	= [ [ {'gid':None,'netcon':None, 'sec':h.VecStim()} for y in xrange(self.nfibpercell) ] for i in xrange(self.nhcell) ]
+			self.sections	= [ {'gid':None,'netcon':None,'sec':h.VecStim()} for x in anconfig for y in x[1:] ]
+			self.ntotal		= len(self.sections)
 			if gid != None:
 				self.setallgid(gid, pc=pc)
 	def readfile(self,filename):
 		with open(filename,"rb") as fd:
+			checksum	=  pickle.load(fd)
 			self.params	=  pickle.load(fd)
 			if self.isright:
 				xxx			= pickle.load(fd)
 				del xxx
 				self.spk	= pickle.load(fd)
+				self.params['auditory nerve configuration'] = self.params['auditory nerve configuration'][1]
 			else:
 				self.spk	= pickle.load(fd)
+				self.params['auditory nerve configuration'] = self.params['auditory nerve configuration'][0]
 				#xxx			= pickle.load(fd)
-		if self.nhcell == None :
-			self.nhcell = self.params[ 'number-hair-cells' ]
-		if self.nfibpercell == None:
-			self.nfibpercell = self.params[ 'fiber-per-hcell' ]
-		if self.ntotal == None:
-			self.ntotal		= self.nhcell * self.nfibpercell
-		if self.nhcell != self.params[ 'number-hair-cells' ] \
-			or self.nfibpercell != self.params[ 'fiber-per-hcell' ] \
-			or self.ntotal	!= (self.params[ 'number-hair-cells' ] * self.params[ 'fiber-per-hcell' ]):
-			logging.error("Data file is damaged! Parameters in file are wrong")
-			raise ValueError("Data file is damaged! Parameters in file are wrong")
-		if self.sections == None:
-			self.sections	= [ [ {'gid':None,'netcon':None, 'sec':h.VecStim()} for y in xrange(self.nfibpercell) ] for i in xrange(self.nhcell) ]
+		if self.anconfig == None :
+			self.anconfig = self.params[ 'auditory nerve configuration' ]
+			self.sections	= [ {'gid':None,'netcon':None,'sec':h.VecStim()} for x in anconfig for y in x[1:] ]
+			self.ntotal		= len(self.sections)
+		elif self.anconfig != self.params[ 'auditory nerve configuration' ]:
+			raise ValueError("Data file is damaged! Configuration of Auditory Nerve is wrong")
+		elif self.sections == None:
+			raise ValueError("Sections are destroyed")
 				
-		###### Checking parameters for maping ######
-		if self.nhcell != len(self.spk):
-			logging.error("Data file is damaged! Parameters in file are wrong")
-			raise ValueError("Data file is damaged! Parameters in file are wrong")
-		for fr,tp,spkset in self.spk:
-			if len(tp) != self.nfibpercell or len(spkset) != self.nfibpercell:
-				logging.error("Data file is damaged! Parameters in file are wrong")
-				raise ValueError("Data file is damaged! Parameters in file are wrong")
-		for freqid in xrange(self.nhcell):
-			for fibid in xrange(self.nfibpercell):
-				vector	= h.Vector(self.spk[freqid][2][fibid].size)
-				vector.from_python(self.spk[freqid][2][fibid])
-				self.spk[freqid][2][fibid] = vector
-				self.sections[freqid][fibid]['sec'].play(vector)
+		#### Check configuration and make vectors of spikes ####
+		for an, spkset in zip( self.anconfig, self.spk):
+			if an != spkset[0]:
+				raise ValueError("Auditory Nerve at frequency {} chamle {} has different fiber types or size".format(an[0],"RIGHT" if self.isright else "LEFT") )
+			for idx in xrange(len(spkset[1])):
+				vector	= h.Vector(spkset[1][idx].shape[0])
+				vector.from_python(spkset[1][idx])
+				spkset[1][idx] = vector
+		#### Setup Vectors ####
+		for sec,vec in zip(self.sections, [ y  for x in self.spk for y in x[1] ] ):
+			sec['sec'].play(vec)
 
-	def setallgid(self, basegid, pc=None):
-		if self.nhcell == None or self.nfibpercell == None \
-			or self.sections == None or self.ntotal == None : return None
-		gid = basegid
-		for freqid in xrange(self.nhcell):
-			for fibid in xrange(self.nfibpercell):
-				self.setgid(freqid, fibid, gid, pc)
-				gid += 1
-		return gid
-
-	def setgid(self,freqid,fibid,gid,pc=None,syn=None):
-		if freqid >= self.nhcell : return None
-		if fibid >= self.nfibpercell : return None
-		if self.sections[freqid][fibid]['gid'] != None:
-			return self.sections[freqid][fibid]
-		netcon = h.NetCon(self.sections[freqid][fibid]['sec'],syn)
-		self.sections[freqid][fibid]['gid']		= gid
-		self.sections[freqid][fibid]['netcon']	= netcon
-		if not(pc == None):
-			pc.set_gid2node(gid, pc.id())
-			pc.cell(gid,netcon)
-		return self.sections[freqid][fibid]
+	def setallgid(self, basegid, pc=None, syn=None):
+		if self.anconfig == None : return None
+		for idx,sec in enumerate(self.sections) :
+			if sec['gid'] != None: continue
+			if syn == None:
+				sec['netcon']	= h.NetCon(sec['sec'],syn)
+			else:
+				sec['netcon']	= h.NetCon(sec['sec'],syn[idx])
+			sec['gid']		= basegid+idx
+			if not(pc == None):
+				pc.set_gid2node(sec['gid'], pc.id())
+				pc.cell(sec['gid'],sec['netcon'])
+		return basegid + len(self.sections)
 
 	def setParams(self, Param=None):
 		pass
 
-	def get(self,freqid,fibid):
-		if freqid >= self.nhcell : return None
-		if fibid >= self.nfibpercell : return None
-		return self.sections[freqid][fibid]
+	#def get(self,freqid,fibid):
+		#if freqid >= self.nhcell : return None
+		#if fibid >= self.nfibpercell : return None
+		#return self.sections[freqid][fibid]
 
-	def getid(self,freqid,fibid):
-		if freqid >= self.nhcell : return None
-		if fibid >= self.nfibpercell : return None
-		return self.sections[freqid][fibid]['gid']
+	#def getid(self,freqid,fibid):
+		#if freqid >= self.nhcell : return None
+		#if fibid >= self.nfibpercell : return None
+		#return self.sections[freqid][fibid]['gid']
 
-	def getfrtp(self,freqid=None,fibid=None):
-		def _rettypes(spkset,fibid=None):
-			if fibid == None: return spkset[1]
-			elif type(fibid) is list:
-				ret = []
-				for fib in fibid: ret+=[_rettypes(spkset,fibid=fib)]
-				return ret
-			elif fibid >= len(spkset[1]): return None
-			else : return spkset[1][fibid]
-		if freqid == None :
-			ret = []
-			for spk in xrange(self.nhcell):ret.append(self.getfrtp(freqid=spk,fibid=fibid))
-			return ret
-		elif type(freqid) is list :
-			ret = []
-			for freq in freqid:ret.append(self.getfrtp(freqid=freq,fibid=fibid))
-			return ret
-		elif freqid >= len(self.spk) : return None
-		else:
-			return (self.spk[freqid][0],_rettypes(self.spk[freqid],fibid=fibid))
+	#def getfrtp(self,freqid=None,fibid=None):
+		#def _rettypes(spkset,fibid=None):
+			#if fibid == None: return spkset[1]
+			#elif type(fibid) is list:
+				#ret = []
+				#for fib in fibid: ret+=[_rettypes(spkset,fibid=fib)]
+				#return ret
+			#elif fibid >= len(spkset[1]): return None
+			#else : return spkset[1][fibid]
+		#if freqid == None :
+			#ret = []
+			#for spk in xrange(self.nhcell):ret.append(self.getfrtp(freqid=spk,fibid=fibid))
+			#return ret
+		#elif type(freqid) is list :
+			#ret = []
+			#for freq in freqid:ret.append(self.getfrtp(freqid=freq,fibid=fibid))
+			#return ret
+		#elif freqid >= len(self.spk) : return None
+		#else:
+			#return (self.spk[freqid][0],_rettypes(self.spk[freqid],fibid=fibid))
 	def save(self, fd):
-		for freqid in xrange(self.nhcell):
-			for fibid in xrange(self.nfibpercell):
-				pickle.dump(['spk',self.sections[freqid][fibid]['gid'], np.array(self.spk[freqid][2][fibid])],fd)
+		for sec,vec in zip(self.sections, [ y  for x in self.spk for y in x[1] ] ):
+			pickle.dump(['spk',sec['gid'], np.array(vec)],fd)
 		
 
 if __name__ == "__main__":
