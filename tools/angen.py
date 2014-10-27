@@ -518,3 +518,31 @@ def genconf(config):
 		logging.info("    > DONE")
 		return anconf
 		
+
+if __name__ == "__main__":
+	hlp = angen()
+	print "<STIMULUS>"
+	print "\t<CLICK>"
+	params = hlp.get_click_params({})
+	for p in params:
+		print "\t\t<{}>{}</{}>".format(p,params[p],p)
+	print "\t</CLICK>"
+
+	print "\t<WAVE24>"
+	params = hlp.get_wave24_params({})
+	for p in params:
+		print "\t\t<{}>{}</{}>".format(p,params[p],p)
+	print "\t</WAVE24>"
+
+	print "\t<TONE>"
+	params = hlp.get_tone_params({})
+	for p in params:
+		print "\t\t<{}>{}</{}>".format(p,params[p],p)
+	print "\t</TONE>"
+
+	print "\t<SAM>"
+	params = hlp.get_SAM_params({})
+	for p in params:
+		print "\t\t<{}>{}</{}>".format(p,params[p],p)
+	print "\t</SAM>"
+	print "</STIMULUS>"
