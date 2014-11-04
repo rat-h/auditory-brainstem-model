@@ -57,12 +57,14 @@ def confreader(filename,nspace = {},sections=None):
 	if 	filename == None:
 		return nspace
 	if not os.access(filename,os.R_OK):
+		logging.warning("couldn't find file: %s"%(filename) ) 
 		return nspace
 	config = ConfigParser()
 	config.optionxform=str
 	try:
 		config.read( filename )
 	except :
+		logging.warning("couldn't read file: %s"%(filename) ) 
 		return nspace
 	if sections == None:
 		sections = config.sections()

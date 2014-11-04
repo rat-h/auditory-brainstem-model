@@ -16,6 +16,9 @@ def checkgeneralsettings(config):
 		logging.error("Couldn't find GENERAL section")
 		return None
 	if not 'networkfilename' in config["GENERAL"]:
+		#DB>>
+		#print config
+		#<<DB
 		logging.error("Couldn't find network filename in GENERAL section")
 		return None
 	if not "pyextrapath" in config["GENERAL"]:
@@ -355,31 +358,32 @@ def congen(config):
 				else:
 					lgid = np.random.randint(FROML, high=TOL)
 				if conobj[3] and mask[lgid-FROML]: continue
-				x  = presynpos(hgid,lgid)
+				x  = presynpos(hgid,lgid,)
 				xm = getpremark(hgid,lgid)
 				y  = possynpos(hgid,lgid)
 				ym = getposmark(hgid,lgid)
-				if not conobj[5](x,xm,y,ym) : continue
+				if not conobj[5](x,xm,y,ym,syncnt) : continue
 				preid = getpregid(hgid,lgid)
 				postid, postoff = getposgid(hgid,lgid)
 				cond, delay =\
-					float( resolve2object(conobj[6],x,xm,y,ym) ),\
-					float( resolve2object(conobj[7],x,xm,y,ym) )
+					float( resolve2object(conobj[6],x,xm,y,ym,syncnt) ),\
+					float( resolve2object(conobj[7],x,xm,y,ym,syncnt) )
 				if mindelay == None: mindelay = delay
 				if mindelay > delay: mindelay = delay
 				if 'name' in conobj[9]:
-					pat = [ postid, conobj[9]['name'], resolve2object(conobj[8][0],x,xm,y,ym), resolve2object(conobj[8][1],x,xm,y,ym) ]
+					pat = [ postid, conobj[9]['name'], resolve2object(conobj[8][0],x,xm,y,ym,syncnt), resolve2object(conobj[8][1],x,xm,y,ym,syncnt) ]
 				else:
-					pat = [ postid, resolve2object(conobj[9],x,y), resolve2object(conobj[8][0],x,xm,y,ym), resolve2object(conobj[8][1],x,xm,y,ym) ]
+					pat = [ postid, resolve2object(conobj[9],x,xm,y,ym,syncnt), resolve2object(conobj[8][0],x,xm,y,ym,syncnt), resolve2object(conobj[8][1],x,xm,y,ym,syncnt) ]
 				#print pat
 				if len(postlist[postoff]) == 0:
 					postlist[postoff].append( pat + [ [(preid,cond,delay)] ])
-				for syntype in postlist[postoff]:
-					if syntype[:-1] == pat :
-						syntype[-1].append( (preid,cond,delay) )
-						break
 				else:
-					postlist[postoff].append( pat + [ [(preid,cond,delay)] ])
+					for syntype in postlist[postoff]:
+						if syntype[:-1] == pat :
+							syntype[-1].append( (preid,cond,delay) )
+							break
+					else:
+						postlist[postoff].append( pat + [ [(preid,cond,delay)] ])
  				syncnt += 1
 				if conobj[3]: mask[lgid-FROML] = True
 				sys.stderr.write(".")
