@@ -1,9 +1,15 @@
 '''
 This Cell Object defines the geometry and membrane properties of a 
-bipolar Lateral Superio Olive (LSO) of the mammalian brainstem.
+bipolar Medial Superio Olive (MSO) of the mammalian brainstem.
 
+Model configurations is described in 
+	Zhou, Carney, and Colburn (2005) J. Neuroscience, 25(12):3046-3058
+
+Ported	from: NEURON http://senselab.med.yale.edu/modeldb/ShowModel.asp?model=53869
+		to NEURON+Python for auditory-brainstem model
+		by Ruben Tikidji-Hamburyan
+		2014/11/23
 '''
-
 try:
     import cPickle as pickle
 except:
@@ -13,31 +19,20 @@ import numpy as np
 
 from neuron import h
 
-class LSOcell:
+class MSOcell:
 	def __init__(self, Param=None, NOISE = None, gid = None, pc=None):
 		self.soma		= h.Section()
 		self.soma.nseg	= 1
-		self.soma.L		= 23	# um
-		self.soma.diam	= 11	# um
-		self.soma.Ra	= 150	#ohm.cm
+		self.soma.L		= 40	# um
+		self.soma.diam	= 20	# um
+		self.soma.Ra	= 200	#ohm.cm
 		self.soma.cm	= 1.		# uF/cm2
+		self.soma.insert('msona')
+		self.soma(0.5).msona.gnabar	= 0.1
+		self.soma(0.5).msona.gl		= 0.002
+		
+		self.soma.ena = 55
 ##		
-		self.soma.insert('lsosoma')
-		self.soma(0.5).lsosoma.gkbar		= 0.055
-		self.soma(0.5).lsosoma.delta0		= 0.18 #// 0.9 // 0.8
-		self.soma.insert('lsocaconc')
-		self.soma(0.5).lsocaconc.depth		= 1.2e-06 	#// cm
-		self.soma(0.5).lsocaconc.Pumptau	= 20.0 		#// ms
-		self.soma.insert('lsotca')
-		self.soma(0.5).lsotca.gcabar		= 0.015 	#// mho/cm2 !!!It seems, this is a wrong units. should be mS/cm2 :(
-		self.soma(0.5).lsotca.gahpbar		= 0.021		#// mho/cm2
-		self.soma.insert('lsoKv11')
-		self.soma(0.5).lsoKv11.gKv1_1bar	= 0.0052	#// mS/cm2
-		self.soma.insert('lsoh')
-		self.soma(0.5).lsoh.eh = -38
-##		
-		self.soma.ena = 55	#// mV
-		self.soma.ek = -80	#// mV
 #		self.soma.v_init = -62
 ##		
 		#if NOISE != None:
@@ -53,31 +48,39 @@ class LSOcell:
 ##
 ##
 		self.axon		= h.Section()
-		self.axon.nseg = 1
-		self.axon.diam = 3 	#// um
-		self.axon.L = 70 	#	// um
-		self.axon.Ra=150 	#	// ohm.cm 
+		self.axon.nseg = 51
+		self.axon.diam = 2 	#// um
+		self.axon.L = 400 	#	// um
+		self.axon.Ra=200 	#	// ohm.cm 
 		self.axon.cm=1 		#// uF/cm2
-#
-		self.axon.insert('lsoaxon')
-#
+		self.axon.insert('msokht')
+		self.axon.insert('msoklt')
+		self.axon.insert('msona')
+		self.axon.insert('msoih')
+		self.axon.ek, self.axon.ena, self.axon.eh=-70., 55., -43
+		for seg in self.axon:
+			seg.msokht.gkbar = 0.02   	#//S/cm2
+			seg.msoklt.gkbar = 0.03 	
+			seg.msona.gnabar = 0.3
+			seg.msona.gl	 = 0.002	
+			seg.msoih.ghbar	 = 0.0015   
 		self.axon.ena = 55	#// mV
 		self.axon.ek = -80	#// mV
-#		self.axon.v_init = -62
 ##
 ##
 		self.dends = [h.Section() for x in range(2)]
+		self.ipsid = self.dends[1]
+		self.contd = self.dends[0]
 		for dend in self.dends:
-			dend.nseg = 10
-			dend.L = 282.0	#// um 
-			dend.diam = 3.4	#// um
-			dend.Ra = 150	#// ohm.cm 
+			dend.nseg = 20
+			dend.L = 200.0	#// um 
+			dend.diam = 3	#// um
+			dend.Ra = 200	#// ohm.cm 
 			dend.cm = 1	#// uF/cm2
-			Rm = 3000	#// ohm.cm2
 			dend.insert ('pas')
 			for seg in dend:
-				seg.pas.g = 1/Rm
-				seg.pas.e = -66
+				seg.pas.g = 0.002
+				seg.pas.e = -65
 ##		
 				#if NOISE != None:
 					#self.innp = h.InNp(0.5,sec=seg) #????
@@ -91,7 +94,7 @@ class LSOcell:
 					#self.innp.stdev = 0.0
 ##
 ##			
-		self.axon.connect(self.soma,0.5,0)
+		self.axon.connect(self.dends[1],0.225,0)
 		self.dends[0].connect(self.soma,0.0,0)
 		self.dends[1].connect(self.soma,1.0,0)
 ##	
@@ -104,7 +107,7 @@ class LSOcell:
 		#                                          RECORDERS                                        #
 		#############################################################################################
 		self.spks			= h.Vector()
-		self.sptr			= h.APCount(0.5,sec=self.axon)
+		self.sptr			= h.APCount(0.95,sec=self.axon)
 		self.sptr.thresh		= -10.
 		self.sptr.record(self.spks)
 		
@@ -127,7 +130,7 @@ class LSOcell:
 		
 	def setgid(self, gid, pc=None):
 		self.gid = gid
-		self.output = h.NetCon(self.axon(0.5)._ref_v,None,sec=self.axon)
+		self.output = h.NetCon(self.axon(0.95)._ref_v,None,sec=self.axon)
 		if not ( pc == None ):
 			pc.set_gid2node(gid, pc.id())
 			pc.cell(gid, self.output)
@@ -148,20 +151,22 @@ class LSOcell:
 ##		
 		
 #4testing
-if __name__ is "__main__":
-	LSO = LSOcell()
+if __name__ == "__main__":
+	MSO = MSOcell()
 
 	h.celsius=22
 
-	stim = h.IClamp(LSO.soma(0.5))
+	stim = h.IClamp(MSO.soma(0.5))
 	stim.delay = 20.0
 	stim.dur = 40
-	stim.amp = 1.7
+	stim.amp = 0.7
 
 	print "stim.amp = ", stim.amp, "\nstim.dur = ", stim.dur, "\nstim.delay = ", stim.delay
 
-	v = h.Vector()
-	v.record(LSO.soma(0.5)._ref_v)
+	vs = h.Vector()
+	vs.record(MSO.soma(0.5)._ref_v)
+	va = h.Vector()
+	va.record(MSO.axon(0.95)._ref_v)
 	t = h.Vector()
 	t.record(h._ref_t)
 
@@ -172,5 +177,7 @@ if __name__ is "__main__":
 	##
 	import matplotlib.pyplot as plt
 
-	plt.plot(t,v)
+	plt.plot(t,vs,"r-",t,va,"b-")
+	spk =np.array(MSO.spks)
+	plt.plot(spk, [0 for x in spk], "k|")
 	plt.show()

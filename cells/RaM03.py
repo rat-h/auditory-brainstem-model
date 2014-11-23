@@ -1,4 +1,16 @@
 '''
+This Cell Object defines the geometry and membrane properties of a 
+Cochlea Nuclei of the mammalian brainstem.
+
+Model configurations is described in 
+	Rothman and Manis (2003a,b,c)
+
+Ported	from: NEURON http://senselab.med.yale.edu/modeldb/ShowModel.asp?model=37857
+		to NEURON+Python for auditory-brainstem model
+		by Ruben Tikidji-Hamburyan
+		2014/11/23
+
+>>>>>>>>>>> ORIGINAL HEADER >>>>>>>>>>
 // Implementation of Rothman and Manis (2003a,b,c) VCN potassium channel
 // models based on measured kinetics.
 // This HOC file generates current clamp responses for 100 msec steps for each
@@ -17,8 +29,6 @@
 // than extreme bushy cells, but this is a starting point.
 // Included Milgore's hcno octopus cell iH current model, just for the type II-o
 // (octopus) cell model.
-
-Ported to python Ruben Tikidji-Hamburyan
 '''
 try:
     import cPickle as pickle
@@ -242,7 +252,7 @@ class vcnRaMbase:
 	def save(self, fd):
 		pickle.dump(['spk',self.gid, np.array(self.spks)],fd)
 
-
+#4testing
 if __name__ == "__main__":
 #	import numpy as np
 	import matplotlib.pyplot as plt
