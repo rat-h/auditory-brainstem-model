@@ -4,12 +4,12 @@
 #include <fcntl.h>
 #include "libresample.h"
 
-static PyObject *read24bit(PyObject *self, PyObject *args);
+static PyObject *readwave(PyObject *self, PyObject *args);
 static PyObject *resample(PyObject *self, PyObject *args);
 
 
 static PyMethodDef audiotoolsmethods[] = {
-	{"read24bit",read24bit,METH_VARARGS},
+	{"readwave", readwave,METH_VARARGS},
 	{"resample", resample, METH_VARARGS},
 	{NULL, NULL}
 };
@@ -32,7 +32,7 @@ typedef struct{
 } wav_h;
 
 
-PyObject *read24bit(PyObject *self, PyObject *args){
+PyObject *readwave(PyObject *self, PyObject *args){
 
 	char *filename;
 	wav_h header;

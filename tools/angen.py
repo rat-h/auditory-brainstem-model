@@ -42,7 +42,7 @@ class angen:
 			return None
 
 		if   stimparam['stimtype'] == 'click':		params=self.get_click_params(stimparam )
-		elif stimparam['stimtype'] == 'wave24':		params=self.get_wave24_params(stimparam )
+		elif stimparam['stimtype'] == 'wave':		params=self.get_wave_params(stimparam )
 		elif stimparam['stimtype'] == 'tone':		params=self.get_tone_params(stimparam )
 		elif stimparam['stimtype'] == 'SAM-noise':	params=self.get_SAM_params(stimparam )
 
@@ -63,7 +63,7 @@ class angen:
 			return None
 
 		if stimparam['stimtype'] == 'click':     return self.gen_click(  filename, anconfig, stimparam, sectionchecksums)
-		if stimparam['stimtype'] == 'wave24':    return self.gen_wave24( filename, anconfig, stimparam, sectionchecksums)
+		if stimparam['stimtype'] == 'wave':      return self.gen_wave(   filename, anconfig, stimparam, sectionchecksums)
 		if stimparam['stimtype'] == 'tone':      return self.gen_tone(   filename, anconfig, stimparam, sectionchecksums)
 		if stimparam['stimtype'] == 'SAM-noise': return self.gen_SAM(    filename, anconfig, stimparam, sectionchecksums)
 
@@ -147,9 +147,9 @@ class angen:
 	#                       GENERATOR from WAVE 24                        #
 	#                                                                     #
 	#######################################################################
-	def get_wave24_params(sef, stimparam):
+	def get_wave_params(sef, stimparam):
 		params ={
-			'stimtype'					: 'wave24',
+			'stimtype'					: 'wave',
 			'stimulus max. amplitude'	: 75.,
 			'resample method'			: 'MEAN',
 			'delay'						: 0.01,
@@ -160,8 +160,8 @@ class angen:
 		for par in stimparam:
 			params[par] = stimparam[par]
 		return params
-	def gen_wave24(self,filename, anconfig, stimparam, sectionchecksums):	
-		def read24Wav(wavefile, samplerate=100e3, maxSPL=1200, resample='MEAN',delay=0.01, tail=0.1):
+	def gen_wave(self,filename, anconfig, stimparam, sectionchecksums):	
+		def readWav(wavefile, samplerate=100e3, maxSPL=1200, resample='MEAN',delay=0.01, tail=0.1):
 			"""
 			read24Wav reads 24 bit wave file and return normolized data for AN model
 			Parameters:
@@ -192,7 +192,7 @@ class angen:
 				)
 			"""
 			#Read 24 bit wav file
-			size,samfreq,nchannels,data= at.read24bit(wavefile)
+			size,samfreq,nchannels,data= at.readwave(wavefile)
 			#Separate channels and add 125 ms of silent at the beginning and at the end
 			delaysamples	= int( np.round(samfreq*delay) )
 			tailsamples		= int( np.round(samfreq*tail) )
@@ -219,7 +219,7 @@ class angen:
 				hchannels = [ d * wavcoeff for d in hchannels ]
 			return nchannels,signalduration,hsize,hchannels
 
-		params = self.get_wave24_params(stimparam)
+		params = self.get_wave_params(stimparam)
 		if not 'input' in params:
 			logging.error(" > Couldn't find input file name. ")
 			return None
@@ -528,11 +528,11 @@ if __name__ == "__main__":
 		print "\t\t<{}>{}</{}>".format(p,params[p],p)
 	print "\t</CLICK>"
 
-	print "\t<WAVE24>"
-	params = hlp.get_wave24_params({})
+	print "\t<WAVE>"
+	params = hlp.get_wave_params({})
 	for p in params:
 		print "\t\t<{}>{}</{}>".format(p,params[p],p)
-	print "\t</WAVE24>"
+	print "\t</WAVE>"
 
 	print "\t<TONE>"
 	params = hlp.get_tone_params({})
