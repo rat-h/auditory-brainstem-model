@@ -58,12 +58,14 @@ PyObject *read24bit(PyObject *self, PyObject *args){
 		PyErr_Format(PyExc_ValueError,"Identification field\n");
 		return NULL;
 	}
+/*
 	if( header.ChunkSize != 16 || header.BitSamplSize != 24 ||
 		header.SamplSize != header.Channels * 3 ||
 		header.FormatTag != 1 ){
 		PyErr_Format(PyExc_ValueError,"File isn\'t 24bit wave format. Please use another library\n");
 		return NULL;
 	}
+*/
 	int dims = header.Channels * header.DataLong/header.SamplSize;
 	
 	Vecout = (PyArrayObject *) PyArray_FromDims( 1, &dims, NPY_DOUBLE);
@@ -73,22 +75,39 @@ PyObject *read24bit(PyObject *self, PyObject *args){
 	}
 	
 	double *out = (double*)Vecout->data;
-	fprintf(stderr,"\n*** NChannel = %d ***\n",header.Channels);
+	//DB>>
+	//fprintf(stderr,"\n*** NChannel = %d ***\n",header.Channels);
+	//printf("%d\n",header.SamplSize);
+	//<<DV
 	int bithread, stchunk=header.SamplSize*256, samhread, cnt;
 	unsigned char buffer[stchunk+1], *scan24;
 	memset(buffer,0,stchunk);
 	int scan64;
+	int stp = header.SamplSize / header.Channels;
+	//DB>>
+	//int gcnt=0;
+	//<<DB
 	
 	while( (bithread = read(mfd,&buffer,stchunk)) != 0){
-		samhread = bithread / header.SamplSize;
+		samhread = bithread / stp;
+		//DB>>
 		//fprintf(stderr,"Read: byte=%d, samples = %d\n", bithread,samhread );
+		//<<DB
 		for(scan24 = buffer,cnt=0, scan64=*((int*)scan24);
-			cnt < samhread; scan24 += 3, ++cnt, scan64=*((int*)scan24) ) {
-			*(out++) = (double)((int)((scan64 << 8)&0xFFFFFF00))/(double)0x7FFFFF00;
+			cnt < samhread; scan24 += stp, ++cnt, scan64=*((int*)scan24) ) {
+			*(out++) = (header.BitSamplSize == 24) ? 
+				(double)((int)((scan64 << 8)&0xFFFFFF00))/(double)0x7FFFFF00 :
+				(double)((int)((scan64 << 16)&0xFFFF0000))/(double)0x7FFF0000;
+			//DB>>
+			//gcnt++;
+			//fprintf(stderr,"\tcnt = %d of %d\n",cnt, samhread);
 			//fprintf(stderr,"\t%02X:%02X:%02X => %08X => %08X => %d => %g\n", scan24[2],scan24[1],scan24[0], scan64,(scan64 << 8)&0xFFFFFF00 ,(scan64 << 8)&0xFFFFFF00,(double)(int)((scan64 << 8)&0xFFFFFF00));
+			//<<DB
 		}
 	}
-
+	//DB>>
+	//printf("*** GCNT:%d ***\n",gcnt);
+	//<<DB
 	close(mfd);
 
 	PyObject *result = PyTuple_New(4);
