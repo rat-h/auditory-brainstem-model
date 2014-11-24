@@ -18,6 +18,7 @@ if __name__ == "__main__":
 import ZilanyCarney2009AN as an
 import audiotools as at
 
+
 class angen:
 	def __init__(self):
 		self.imported = True
@@ -479,6 +480,9 @@ def genconf(config):
 	def regen(config):
 		ret = [ [], [] ]
 		for n in xrange(config["nhcell"]):
+			#DB>>
+			#nspace = config
+			#<<DB
 			fr = config["cell distribution"](n)
 			l,r=[fr],[fr]
 			for k in xrange(config["nfibperhcell"]):
@@ -520,29 +524,52 @@ def genconf(config):
 		
 
 if __name__ == "__main__":
+	def printHUM(hlp):
+		def printHUMitem(item,params):
+			print "========================STIMULUS=:=%s================="%(item)
+			print "{} : {}".format("% 32s"%'stimtype',params['stimtype'])
+			for p in params:
+				if p == 'stimtype':continue
+				print "{} : {}".format("% 32s"%p,params[p])
+			print
+		printHUMitem("CLICK",hlp.get_click_params({}) )
+		printHUMitem("WAVE", hlp.get_wave_params({})  )
+		printHUMitem("TONE", hlp.get_tone_params({})  )
+		printHUMitem("SAM",  hlp.get_SAM_params({})   )
+	def printTBL(hlp):
+		def printTBLitem(item,params):
+			print "||{}||{}||{}||".format(item,'stimtype',params['stimtype'])
+			for p in params:
+				if p == 'stimtype':continue
+				print "|| ||{}||{}||".format(p,params[p])
+		print "||STIMULUS||PARAMETER||DEFAULT VALUE||"
+		printTBLitem("CLICK",hlp.get_click_params({}) )
+		printTBLitem("WAVE", hlp.get_wave_params({})  )
+		printTBLitem("TONE", hlp.get_tone_params({})  )
+		printTBLitem("SAM",  hlp.get_SAM_params({})   )
+		
+	def printXML(hlp):
+		def printXMLnode(node,params):
+			print "\t<{} stimtype=\"{}\">".format(node,params['stimtype'])
+			for p in params:
+				if p == 'stimtype':continue
+				print "\t\t<{}>{}</{}>".format(p,params[p],p)
+			print "\t</%s>"%node
+		print "<STIMULI>"
+		printXMLnode("CLICK",hlp.get_click_params({}) )
+		printXMLnode("WAVE", hlp.get_wave_params({})  )
+		printXMLnode("TONE", hlp.get_tone_params({})  )
+		printXMLnode("SAM",  hlp.get_SAM_params({})   )
+		print "</STIMULI>"
 	hlp = angen()
-	print "<STIMULUS>"
-	print "\t<CLICK>"
-	params = hlp.get_click_params({})
-	for p in params:
-		print "\t\t<{}>{}</{}>".format(p,params[p],p)
-	print "\t</CLICK>"
-
-	print "\t<WAVE>"
-	params = hlp.get_wave_params({})
-	for p in params:
-		print "\t\t<{}>{}</{}>".format(p,params[p],p)
-	print "\t</WAVE>"
-
-	print "\t<TONE>"
-	params = hlp.get_tone_params({})
-	for p in params:
-		print "\t\t<{}>{}</{}>".format(p,params[p],p)
-	print "\t</TONE>"
-
-	print "\t<SAM>"
-	params = hlp.get_SAM_params({})
-	for p in params:
-		print "\t\t<{}>{}</{}>".format(p,params[p],p)
-	print "\t</SAM>"
-	print "</STIMULUS>"
+	if len(sys.argv) < 2:
+		print "USAGE: %s [HUM|TBL|XML]"%sys.argv[0]
+		sys.exit(0)
+	for i in sys.argv[1:]:
+		if i == "-h" or i == "--help":
+			print "USAGE: %s [HUM|TBL|XML]"%sys.argv[0]
+			sys.exit(0)
+		if i == "HUM":printHUM(hlp)
+		if i == "TBL":printTBL(hlp)
+		if i == "XML":printXML(hlp)
+	
