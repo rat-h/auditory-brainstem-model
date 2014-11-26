@@ -205,6 +205,14 @@ logging.info("READ CONFIG FILE \'%s\':"%config["CONF"]["file"])
 config["GENERAL"]["CONFIGHASH"]		= hashsum(config["CONF"]["file"])
 logging.info(" > Checksum %s"%config["GENERAL"]["CONFIGHASH"])
 
+logging.debug("Reading all configuration sections except: {}".format(["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION","GRAPHS","VIEW","STAT"]))
+config = confreader( config["CONF"]["file"], nspace=config, skip = ["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION","GRAPHS","VIEW","STAT"] )
+if config == {} or config == None:
+	logging.error("Couldn't read all sections except {} from config file '{}' ".format(["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION","GRAPHS","VIEW","STAT"],config))
+	pcexit(1)
+logging.info(" > DONE")
+
+
 logging.debug("Reading configuration for sections: {}".format(["GENERAL","AUDITORY NERVE","STIMULI","CELLS"]))
 config = confreader( config["CONF"]["file"], nspace=config, sections = ["GENERAL","AUDITORY NERVE","STIMULI","CELLS"] )
 if config == {} or config == None:

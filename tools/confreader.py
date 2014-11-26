@@ -38,7 +38,14 @@ def nameresolv(item,nspace):
 		res += 'nspace["%s"]["%s"]'%tuple(var)
 	return unicode(res)
 
-def confreader(filename,nspace = {},sections=None):
+def skipit(section,skip):
+	if skip == None: return False
+	if type(skip) is str:
+		if section == skip: return True
+	if type(skip) is list or type(skip) is tuple:
+		if section in skip:  return True
+	return False
+def confreader(filename,nspace = {},sections=None,skip=None):
 	"""
 	Reads file with configurations and returns dictionary with sections
 	and options. All options will be turned into python objects (DON'T 
@@ -69,6 +76,7 @@ def confreader(filename,nspace = {},sections=None):
 	if sections == None:
 		sections = config.sections()
 	for section in sections:
+		if skipit(section,skip) : continue
 		if not section in nspace: nspace[section]={}
 		if not config.has_section(section): continue
 		if not '__:hash:__' in nspace[section]:nspace[section]['__:hash:__']=hashlib.sha256()
@@ -92,6 +100,7 @@ def confreader(filename,nspace = {},sections=None):
 				pass
 	# Calculate hash
 	for section in sections:
+		if skipit(section,skip) : continue
 		if not '__:hash:__' in nspace[section]:continue
 		nspace[section]['__:hash:__'] = nspace[section]['__:hash:__'].hexdigest()
 	
