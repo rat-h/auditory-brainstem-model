@@ -153,6 +153,7 @@ def populationpreset( config ):
 	sys.stderr.write("PREPROCESSING POPULATIONS:\n")
 	for population in config["POPULATIONS"]:
 		if population == '__:hash:__': continue
+		if population == '__:dependency:__': continue
 		#### CHECKING POPULATION RECORD ####
 		if len(config["POPULATIONS"][population]) < 3:
 			logging.error("Population {} has less than 3 items.".format(population))
@@ -253,6 +254,7 @@ def synapticpreset(config):
 	if not 'SYNAPSES' in config : return config
 	for syn in config['SYNAPSES']:
 		if syn == '__:hash:__': continue
+		if syn == '__:dependency:__': continue
 		if 'name' in config['SYNAPSES'][syn]:
 			logging.error("Synapses:%s has variable \'name\'"%(syn))
 			return None
@@ -272,7 +274,11 @@ def congen(config):
 	### Preset connections names
 	mindelay= None
 	for con in config['CONNECTIONS']:
+		#DB>>
+		#print "CONNECTION",con
+		#<<DB
 		if con == '__:hash:__': continue
+		if con == '__:dependency:__': continue
 		conobj = config['CONNECTIONS'][con]
 		if len(conobj) != 10:
 				logging.error("number of parameters for option %s in section CONNECTIONS are wrong"%con)

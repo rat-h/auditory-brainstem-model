@@ -6,7 +6,7 @@ import scipy as sp
 
 from tools.commonvariables import config
 
-def nameresolv(item,nspace):
+def nameresolv(item,nspace,currentsection):
 	copir = item.split("$")
 	if len(copir) < 2: 
 		res = item
@@ -25,6 +25,10 @@ def nameresolv(item,nspace):
 			else:
 				res += str(nspace[var[0]][var[1]])
 				#res += 'config["%s"]["%s"]'%tuple(var)
+			if var[0] != currentsection:
+				if not '__:dependency:__' in nspace[currentsection]:
+					nspace[currentsection]['__:dependency:__'] = {}
+				nspace[currentsection]['__:dependency:__'][var[0]] = True
 	copir = res.split("@")
 	if len(copir) < 2: return res
 	res = ''
@@ -36,6 +40,10 @@ def nameresolv(item,nspace):
 		if not var[0] in nspace : return None
 		if not var[1] in nspace[var[0]] : return None
 		res += 'nspace["%s"]["%s"]'%tuple(var)
+		if var[0] != currentsection:
+			if not '__:dependency:__' in nspace[currentsection]:
+				nspace[currentsection]['__:dependency:__'] = {}
+			nspace[currentsection]['__:dependency:__'][var[0]] = True
 	return unicode(res)
 
 def skipit(section,skip):
@@ -45,6 +53,7 @@ def skipit(section,skip):
 	if type(skip) is list or type(skip) is tuple:
 		if section in skip:  return True
 	return False
+
 def confreader(filename,nspace = {},sections=None,skip=None):
 	"""
 	Reads file with configurations and returns dictionary with sections
@@ -79,13 +88,14 @@ def confreader(filename,nspace = {},sections=None,skip=None):
 		if skipit(section,skip) : continue
 		if not section in nspace: nspace[section]={}
 		if not config.has_section(section): continue
-		if not '__:hash:__' in nspace[section]:nspace[section]['__:hash:__']=hashlib.sha256()
+		if not '__:hash:__' in nspace[section]:			nspace[section]['__:hash:__']=hashlib.sha256()
+		if not '__:dependency:__' in nspace[section]:	nspace[section]['__:dependency:__']={}
 		for option in config.options(section):
 			if option in nspace[section]:
 				logging.error("Name conflict option \'%s\' exists in section [\'%s\']"%(option,section) ) 
 				return {}				
 			xitem = unicode( config.get(section,option) )
-			item = nameresolv(xitem,nspace)
+			item = nameresolv(xitem,nspace,section)
 			if item == None:
 				logging.error("Problem with resolving option in  [\'%s\']\'%s\'=\'%s\'"%(section,option,item) ) 
 				return {}
@@ -104,6 +114,13 @@ def confreader(filename,nspace = {},sections=None,skip=None):
 		if not '__:hash:__' in nspace[section]:continue
 		nspace[section]['__:hash:__'] = nspace[section]['__:hash:__'].hexdigest()
 	
+	for section in sections:
+		if skipit(section,skip) : continue
+		if not '__:dependency:__' in nspace[section]:continue
+		for parents in nspace[section]['__:dependency:__']:
+			if not '__:hash:__' in nspace[parents]:continue
+			nspace[section]['__:hash:__'] += nspace[parents]['__:hash:__']
+		del nspace[section]['__:dependency:__']
 	return nspace
 
 if __name__ == "__main__":
