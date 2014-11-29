@@ -41,14 +41,14 @@ def plot_traces(stimname,recname,mrange=None):
 					nreclist.append(reclist[recid])
 			reclist = nreclist
 
-	tvec = stimlist[stimname][2]+stimlist[stimname][3]
-	stimlist[stimname][4].seek(tvec)
-	tvec = pickle.load(stimlist[stimname][4])
+	tvec = stimlist[stimname][2]
+	stimlist[stimname][4][tvec[0]].seek(tvec[1])
+	tvec = pickle.load(stimlist[stimname][4][tvec[0]])
 	tvec = tvec[1]
 	for xrec in reclist:
-		xvec = xrec[1]+stimlist[stimname][3]
-		stimlist[stimname][4].seek(xvec)
-		xvec = pickle.load(stimlist[stimname][4])
+		xvec = xrec[1]
+		stimlist[stimname][4][xvec[0]].seek(xvec[1])
+		xvec = pickle.load(stimlist[stimname][4][xvec[0]])
 		xvec = xvec[4]
 		plt.plot(tvec,xvec)
 
@@ -84,9 +84,9 @@ def plot_raster(stimname,popname,mrange=None):
 			plot_raster(stimname,pname,mrange)
 		return
 	for xpop in getpoplist(stimname,popname,mrange):
-		xvec = xpop[1]+stimlist[stimname][3]
-		stimlist[stimname][4].seek(xvec)
-		xspk = pickle.load(stimlist[stimname][4])
+		xvec = xpop[1]
+		stimlist[stimname][4][xvec[0]].seek(xvec[1])
+		xspk = pickle.load(stimlist[stimname][4][xvec[0]])
 		xgid = xspk[1]
 		xspk = xspk[2]
 		plt.plot(xspk,np.repeat(xgid, xspk.size),"k|")
@@ -122,9 +122,9 @@ def calculate_spikerate(stimname,population,nbins=100,binsize=1.,mrange=None, ts
 	sprate = np.zeros(nbins, dtype=np.dtype('i'))
 	poplist = getpoplist(stimname,population,mrange)
 	for xpop in poplist:
-		xvec = xpop[1]+stimlist[stimname][3]
-		stimlist[stimname][4].seek(xvec)
-		xspk = pickle.load(stimlist[stimname][4])
+		xvec = xpop[1]
+		stimlist[stimname][4][xvec[0]].seek(xvec[1])
+		xspk = pickle.load(stimlist[stimname][4][xvec[0]])
 		xspk = xspk[2][ np.where( xspk[2] < float(nbins*binsize) ) ]
 		if tstim != None and (type(tstim) is float or type(tstim) is int):
 			xspk = xspk[ np.where( xspk >= float(tstim) ) ]

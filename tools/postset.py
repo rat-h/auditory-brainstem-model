@@ -62,7 +62,7 @@ def collector(stimname,stimobj,config):
 			if obj[0] == 'rc':
 				reclist[ obj[3] ] = []
 	gidlist.sort()
-	outfd = open(stimobj[3]+"tmp",'wb')
+
 	
 	for hid in xrange(nodes):
 		if not os.access(stimobj[3]+"%03d"%hid,os.R_OK):
@@ -70,6 +70,7 @@ def collector(stimname,stimobj,config):
 			return None
 		with open(stimobj[3]+"%03d"%hid,"rb") as fd:
 			while True:
+				offset = fd.tell()
 				try: obj=pickle.load(fd)
 				except: break
 				if obj[0] == "h":
@@ -81,29 +82,23 @@ def collector(stimname,stimobj,config):
 						return None
 					continue
 				if obj[0] == "spk":
-					gidlist[obj[1]].append(outfd.tell())
+					gidlist[obj[1]].append( [hid,offset] )
 				if obj[0] == 'rec':
-					reclist[ obj[1] ] += [ [ obj[2], outfd.tell() ] ]
+					reclist[ obj[1] ] += [ [ obj[2], (hid,offset) ] ]
 				if obj[0] == 'time':
-					timeoffset = outfd.tell()
-				pickle.dump(obj,outfd)
+					timeoffset = (hid,offset)
+
 	for g in gidlist:
 		poplist[g[1]].append( (g[0],g[2]) )
 	del gidlist
-	outfd.close()
+
 	with open(stimobj[3],'wb') as fd:
 		pickle.dump(config["GENERAL"]["CONFIGHASH"],fd)
+		pickle.dump(nodes,fd)
 		pickle.dump(poplist,fd)
 		pickle.dump(reclist,fd)
 		pickle.dump(timeoffset,fd)
-		offset = fd.tell()
-		with open(stimobj[3]+"tmp",'rb') as tmpfd:
-			while True:
-				try: obj=pickle.load(tmpfd)
-				except: break
-				pickle.dump(obj,fd)
-	os.remove(stimobj[3]+"tmp")
-	stimlist[stimname] = (poplist,reclist,timeoffset,offset,open(stimobj[3],'rb'))
+	stimlist[stimname] = (poplist,reclist,timeoffset,None,[ open(stimobj[3]+"%03d"%hid,'rb') for hid in xrange(nodes)] )
 	return config
 	
 def collect(config):
@@ -141,11 +136,11 @@ def collect(config):
 					config = collector(stimname,stimobj,config)
 					if config =={} or config == None: return None
 					else: continue
+				nodes = pickle.load(fd)
 				poplist = pickle.load(fd)
 				reclist = pickle.load(fd)
 				timeoffset = pickle.load(fd)
-				offset = fd.tell()
-			stimlist[stimname] = (poplist,reclist,timeoffset,offset,open(stimobj[3],'rb'))
+			stimlist[stimname] = (poplist,reclist,timeoffset,None,[ open(stimobj[3]+"%03d"%hid,'rb') for hid in xrange(nodes)])
 		logging.info(" > %s is done"%stimname)
 	#DB>
 	#print stimnames

@@ -48,9 +48,9 @@ def stat_total(stimname,popname,mrange=None,Norm=False,trange=None):
 			return summ
 	summ = 0
 	for xpop in getpoplist(stimname,popname,mrange):
-		xvec = xpop[1]+stimlist[stimname][3]
-		stimlist[stimname][4].seek(xvec)
-		xspk = pickle.load(stimlist[stimname][4])
+		xvec = xpop[1]
+		stimlist[stimname][4][xvec[0]].seek(xvec[1])
+		xspk = pickle.load(stimlist[stimname][4][xvec[0]])
 		xspk = xspk[2]
 		if type(trange) is int or type(trange) is float:
 			if trange >= 0:
@@ -68,9 +68,9 @@ def stat_total(stimname,popname,mrange=None,Norm=False,trange=None):
 def getR2XYN(stimname,popname,frequency,tstim, mrange=None,Norm=False,trange=None):
 	X,Y,N = 0.,0.,0
 	for xpop in getpoplist(stimname,popname,mrange):
-		xvec = xpop[1]+stimlist[stimname][3]
-		stimlist[stimname][4].seek(xvec)
-		xspk = pickle.load(stimlist[stimname][4])
+		xvec = xpop[1]
+		stimlist[stimname][4][xvec[0]].seek(xvec[0])
+		xspk = pickle.load(stimlist[stimname][4][xvec[0]])
 		xspk = xspk[2]
 		if type(trange) is int or type(trange) is float:
 			if trange >= 0:

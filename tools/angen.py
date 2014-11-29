@@ -459,10 +459,10 @@ class angen:
 		ansyns		= [ None for x in anconfig ]
 		anspks		= [ None for x in anconfig ]
 		for idx,hc in enumerate(anconfig):
-			sys.stderr.write("Activate fiber %fHz: "%hc[0])
+			sys.stderr.write("Activate hair cell at %fHz "%hc[0])
 			ihc = an.ihc(indata,hc[0],1,1./Fs,indata.size/Fs,cohc,cihc)
 			anihc[idx] =  ( hc[0], ihc ) 
-			sys.stderr.write("=*=")
+			sys.stderr.write("=:<>c")
 			syns, spks = [], []
 			for ftype in hc[1:]:
 				syn,tsptim,tspsize = an.synapse(ihc,hc[0],1,1./Fs,ftype,implnt)
@@ -470,7 +470,7 @@ class angen:
 				spk = np.array( spk ) * 1e3 # spk - spike times in ms
 				syns.append(syn)
 				spks.append(spk)
-				sys.stderr.write(".")
+				sys.stderr.write("-")
 			ansyns[idx] = ( hc, syns )
 			anspks[idx] = ( hc, spks )
 			sys.stderr.write(" done\n")
