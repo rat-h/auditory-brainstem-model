@@ -134,7 +134,7 @@ def calculate_spikerate(stimname,population,nbins=100,binsize=1.,mrange=None, ts
 		sprate[ xspk ] += 1
 	return sprate,len(poplist)
 
-def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,normalaize=False,tstim=None,color="k"):
+def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,normalaize=False,tstim=None,color="k",alpha=1.0):
 	if type(popname) is tuple or type(popname) is list:
 		sprate = np.zeros(nbins, dtype=np.dtype('i'))
 		xcount = 0
@@ -146,7 +146,7 @@ def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,
 		sprate, xcount = calculate_spikerate(stimname,popname,nbins,binsize,mrange,tstim)
 	if normalaize:
 		sprate /= xcount
-	plt.bar(np.arange(nbins)*binsize-0.45*binsize,sprate,0.9*binsize,color=color,edgecolor=color)
+	plt.bar(np.arange(nbins)*binsize-0.45*binsize,sprate,0.9*binsize,color=color,edgecolor=color,alpha=alpha)
 
 def plot_stimrate(popname,mrange=None,stimuli=None,m0a=False):
 	if stimuli == None :

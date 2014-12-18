@@ -420,7 +420,7 @@ def congen(config):
 	 
 def networkgenerate(config):
 	with open(config["GENERAL"]['networkfilename'],"wb") as fd:
-		pickle.dump(config["GENERAL"]["CONFIGHASH"],fd)
+		pickle.dump(config["GENERAL"]["NETWORKHASH"],fd)
 		pickle.dump(config["CONF"]['stimdur'],fd)
 	
 	config = populationpreset(config)
@@ -444,7 +444,7 @@ def presetnetwork(config):
 		return networkgenerate(config)
 	with open(config["GENERAL"]['networkfilename'],"rb") as fd:
 		hsum = pickle.load(fd)
-	if hsum == config["GENERAL"]["CONFIGHASH"] and not config["CONF"]["preset"]:
+	if hsum == config["GENERAL"]["NETWORKHASH"] and not config["CONF"]["preset"]:
 		logging.info(" > Nothing to do !")
 		return config
 	if config["CONF"]["preset"] :

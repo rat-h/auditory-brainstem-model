@@ -249,6 +249,10 @@ if config == {} or config == None:
 	pcexit(1)
 logging.info(" > DONE")
 
+config["GENERAL"]["NETWORKHASH"]=""
+for section in ["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION","GRAPHS","VIEW","STAT"]:
+	config["GENERAL"]["NETWORKHASH"] += config[section]["__:hash:__"]
+
 if config["GENERAL"]["NODEID"] == 0:
 	config = presetnetwork( config )
 	if config == None or config == {} :
@@ -267,7 +271,7 @@ else:
 		if os.access(config["GENERAL"]['networkfilename'],os.R_OK):
 			with open(config["GENERAL"]['networkfilename'],"rb") as fd:
 				hsum = pickle.load(fd)
-			if hsum == config["GENERAL"]["CONFIGHASH"] :
+			if hsum == config["GENERAL"]["NETWORKHASH"] :
 				logging.info(" > Presetting complete")
 				break
 			else:
@@ -483,7 +487,7 @@ if config["CONF"]["run"]:
 		
 		logging.debug(" > record to %s"%stimobj[3])
 		with open(stimobj[3]+"%03d"%config["GENERAL"]["NODEID"],"wb") as fd:
-			pickle.dump(['h',config["GENERAL"]["CONFIGHASH"],config["GENERAL"]["NODEID"],config["GENERAL"]["NODETOTALS"]],fd)
+			pickle.dump(['h',config["GENERAL"]["NETWORKHASH"],config["GENERAL"]["NODEID"],config["GENERAL"]["NODETOTALS"]],fd)
 			if config["GENERAL"]["NODEID"] == 0:
 				pickle.dump(["time",np.array(rect)],fd)
 			for cell in cells:
@@ -605,7 +609,7 @@ if config["CONF"]["stat"] and 'STAT' in config:
 	for rec in config['STAT']['records']: line += config['STAT']['delimiter']+rec
 	line += '\n'
 	with open(config['STAT']['file'],'a') as fd: fd.write(line)
-	line = "{}".format(config["GENERAL"]["CONFIGHASH"])
+	line = "{}".format(config["GENERAL"]["NETWORKHASH"])
 	for rec in config['STAT']['records']:
 		if rec in config['STAT']:
 			logging.debug("STAT > execute "+"stat_ret="+config['STAT'][rec])

@@ -22,8 +22,8 @@ def collector(stimname,stimobj,config):
 			try: obj=pickle.load(fd)
 			except: break
 			if obj[0] == "h":
-				if obj[1] != config["GENERAL"]["CONFIGHASH"]:
-					logging.error("Hash sums don't match config:%s, %s:%s "%(config["GENERAL"]["CONFIGHASH"],stimobj[3]+"%03d"%config["GENERAL"]["NODEID"],obj[1] ) )
+				if obj[1] != config["GENERAL"]["NETWORKHASH"]:
+					logging.error("Hash sums don't match config:%s, %s:%s "%(config["GENERAL"]["NETWORKHASH"],stimobj[3]+"%03d"%config["GENERAL"]["NODEID"],obj[1] ) )
 					return None
 				else:
 					nodes = obj[-1]
@@ -46,8 +46,8 @@ def collector(stimname,stimobj,config):
 		except:
 			logging.error("Network file %s is empty!"%config["GENERAL"]['networkfilename'])
 			return None
-		if  hsum != config["GENERAL"]["CONFIGHASH"]:
-			logging.error("Hash sums don't match config:%s, %s:%s "%(config["GENERAL"]["CONFIGHASH"],config["GENERAL"]['networkfilename'],hsum ) )
+		if  hsum != config["GENERAL"]["NETWORKHASH"]:
+			logging.error("Hash sums don't match config:%s, %s:%s "%(config["GENERAL"]["NETWORKHASH"],config["GENERAL"]['networkfilename'],hsum ) )
 			return None
 		while True:
 			try: obj=pickle.load(fd)
@@ -74,8 +74,8 @@ def collector(stimname,stimobj,config):
 				try: obj=pickle.load(fd)
 				except: break
 				if obj[0] == "h":
-					if  obj[1] != config["GENERAL"]["CONFIGHASH"]:
-						logging.error("Hash sums don't match config:%s, %s:%s "%(config["GENERAL"]["CONFIGHASH"],stimobj[3]+"%03d"%hid,obj[1] ) )
+					if  obj[1] != config["GENERAL"]["NETWORKHASH"]:
+						logging.error("Hash sums don't match config:%s, %s:%s "%(config["GENERAL"]["NETWORKHASH"],stimobj[3]+"%03d"%hid,obj[1] ) )
 						return None
 					if obj[3] != nodes:
 						logging.error(" Wrong number of nodes(%d) in file %s "%(obj[3],stimobj[3]+"%03d"%hid) )
@@ -93,7 +93,7 @@ def collector(stimname,stimobj,config):
 	del gidlist
 
 	with open(stimobj[3],'wb') as fd:
-		pickle.dump(config["GENERAL"]["CONFIGHASH"],fd)
+		pickle.dump(config["GENERAL"]["NETWORKHASH"],fd)
 		pickle.dump(nodes,fd)
 		pickle.dump(poplist,fd)
 		pickle.dump(reclist,fd)
@@ -131,7 +131,7 @@ def collect(config):
 					config = collector(stimname,stimobj,config)
 					if config =={} or config == None: return None
 					else: break
-				if hsum != config["GENERAL"]["CONFIGHASH"]:
+				if hsum != config["GENERAL"]["NETWORKHASH"]:
 					logging.debug(" > Hash sum of %s doesn't match to config file, try to recollect"%stimobj[3])
 					config = collector(stimname,stimobj,config)
 					if config =={} or config == None: return None
