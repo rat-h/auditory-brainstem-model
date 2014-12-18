@@ -242,15 +242,15 @@ if config == None or config == {} :
 	logging.error("ABBORT!")
 	pcexit(1)
 
-logging.debug("Reading configuration for sections: {}".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD"]))
-config = confreader( config["CONF"]["file"], nspace=config, sections = ["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD"] )
+logging.debug("Reading configuration for sections: {}".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","SIMULATION"]))
+config = confreader( config["CONF"]["file"], nspace=config, sections = ["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","SIMULATION"] )
 if config == {} or config == None:
-	logging.error("Couldn't read section {} from config file '{}' ".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD"],config))
+	logging.error("Couldn't read section {} from config file '{}' ".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","SIMULATION"],config))
 	pcexit(1)
 logging.info(" > DONE")
 
 config["GENERAL"]["NETWORKHASH"]=""
-for section in ["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION","GRAPHS","VIEW","STAT"]:
+for section in ["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION"]:
 	config["GENERAL"]["NETWORKHASH"] += config[section]["__:hash:__"]
 
 if config["GENERAL"]["NODEID"] == 0:
@@ -318,12 +318,12 @@ if config["CONF"]["preset"] : pcexit(0)
 #                                                                      #
 ########################################################################
 
-logging.debug("Reading configuration for sections: {}".format(["SIMULATION"]))
-config = confreader( config["CONF"]["file"], nspace=config, sections = ["SIMULATION"] )
-if config == {} or config == None:
-	logging.error("Couldn't read section {} from config file '{}' ".format(["SIMULATION"],config))
-	pcexit(1)
-logging.info(" > DONE")
+#logging.debug("Reading configuration for sections: {}".format(["SIMULATION"]))
+#config = confreader( config["CONF"]["file"], nspace=config, sections = ["SIMULATION"] )
+#if config == {} or config == None:
+	#logging.error("Couldn't read section {} from config file '{}' ".format(["SIMULATION"],config))
+	#pcexit(1)
+#logging.info(" > DONE")
 
 
 if config["CONF"]["run"]:
@@ -496,7 +496,7 @@ if config["CONF"]["run"]:
 				pickle.dump(["rec"]+rec[:3]+[np.array(rec[-1])],fd)
 
 else:
-	logging.info("==== SKIP THE SIMULATION ===")
+	logging.info("==== SKIP THE SIMULATION ====")
 
 
 ########################################################################
