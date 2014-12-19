@@ -33,7 +33,13 @@ def pcexit(status):
 	logging.info("#############################\n\n")
 	exit(status)
 
-
+def runscripts(option, scripts):
+	logging.info("RUN SCRIPTS {}:{}".format(option,scripts))
+	if type(scripts) is str:
+		scripts = [ scripts ]
+	for script in scripts:
+		logging.debug(" > {} : {}".format(script, os.system(script)))
+		
 config["CONF"] = {}
 config["CONF"]["file"] 		= "mainmodel.cfg"
 config["CONF"]["log"]		= None
@@ -212,6 +218,9 @@ if config == {} or config == None:
 	pcexit(1)
 logging.info(" > DONE")
 
+if "SCRIPTS" in config:
+	if "preloading" in config["SCRIPTS"]: runscripts("preloading", config["SCRIPTS"]["preloading"])
+		
 
 logging.debug("Reading configuration for sections: {}".format(["GENERAL","AUDITORY NERVE","STIMULI","CELLS"]))
 config = confreader( config["CONF"]["file"], nspace=config, sections = ["GENERAL","AUDITORY NERVE","STIMULI","CELLS"] )
@@ -252,6 +261,9 @@ logging.info(" > DONE")
 config["GENERAL"]["NETWORKHASH"]=""
 for section in ["GENERAL","AUDITORY NERVE","STIMULI","POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","CELLS","SIMULATION"]:
 	config["GENERAL"]["NETWORKHASH"] += config[section]["__:hash:__"]
+
+if "SCRIPTS" in config:
+	if "preparation" in config["SCRIPTS"]: runscripts("preparation", config["SCRIPTS"]["preparation"])
 
 if config["GENERAL"]["NODEID"] == 0:
 	config = presetnetwork( config )
@@ -325,6 +337,8 @@ if config["CONF"]["preset"] : pcexit(0)
 	#pcexit(1)
 #logging.info(" > DONE")
 
+if "SCRIPTS" in config:
+	if "simulations" in config["SCRIPTS"]: runscripts("simulations", config["SCRIPTS"]["simulations"])
 
 if config["CONF"]["run"]:
 	if config["GENERAL"]["system"] == 'python' :
@@ -509,6 +523,10 @@ if config["GENERAL"]["system"] == 'nrn' and config["CONF"]["run"]:
 	del	cells,synapses,netcons,recorders
 	del stimdurations 
 	del mygids, cellidx, mypops
+
+if "SCRIPTS" in config:
+	if "analysis" in config["SCRIPTS"]: runscripts("analysis", config["SCRIPTS"]["analysis"])
+
 
 if  config["CONF"]["collect"] or \
 	config["CONF"]["graphs"]  or \
