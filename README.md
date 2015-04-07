@@ -3,7 +3,7 @@
 
 This code is designed to run through [NSG Portal](http://www.nsgportal.org/).
 It allows separate single-tread code, like setting network connectivity up, generating stimuli, collecting and indexing data, statistic analysis and graphics plotting from parallel code, i.e. actual simulation. As a result one should launch the application at least twice, but in wast majority cases three times with different command line keys. First to build model, this stage is called '_preset_'. Then second time to run a simulation, this may be done on different computer and/or NSG portal. And finally the third time to index recordings, make statistic analysis and figures plotting.
-Please find more details in [User guide page](HOWTO.md)
+Please find more details in [User guide page](wiki/HOWTO.md)
 
 ## Current Status of Project ##
 Currently this project has **unstable/experimental** status and totally in the developing stage. We plan to create a stable branch and make first stable commit in a few months.
@@ -11,13 +11,13 @@ Currently this project has **unstable/experimental** status and totally in the d
 ## How to get it? ##
 The code is distributed under [GNU GPL v3 License](http://www.gnu.org/copyleft/gpl.html).
 
-Although it may be downloaded as [zip](https://auditory-brainstem-model.googlecode.com/archive/6c312b8c48cf79204dc92bf966e777e635f4e3ec.zip) or [tar.gz](https://auditory-brainstem-model.googlecode.com/archive/6c312b8c48cf79204dc92bf966e777e635f4e3ec.tar.gz) archive, it is better to clone latest version from repository. For MacOS or Linux operating system, you need to open the terminal and run git program:
+Although it may be downloaded as [zip](https://github.com/rat-h/auditory-brainstem-model/archive/master.zip) archive, it is better to clone latest version from repository. For MacOS or Linux operating system, you need to open the terminal and run git program:
 ```
-git clone https://code.google.com/p/auditory-brainstem-model/
+https://github.com/rat-h/auditory-brainstem-model.git
 ```
 
 ## Requirements ##
-The project requites NEURON+Python software to run a simulation and standard scientific package for Python which is
+The project requites _[NEURON+Python](http://neuron.yale.edu/neuron/)_ software to run a simulation and standard scientific package for Python which is
   * [NumPy](http://www.numpy.org/)
   * [SciPy](http://www.scipy.org/)
   * [MatPlotLib aka pyplot](http://matplotlib.org/)
@@ -26,13 +26,13 @@ The project was tested mostly under Ubuntu or openSUSE Linux and NSG portal. The
 
 
 ## How to report a BUG? ##
-The main advantage of open source project it is fast track of bug and bug fixing system. Please use [project bug report system](https://code.google.com/p/auditory-brainstem-model/issues/list) to post any issue.
+The main advantage of open source project it is fast track of bug and bug fixing system. Please use [project bug report system](https://github.com/rat-h/auditory-brainstem-model/issues) to post any issue.
 
 ## Code Browsing ##
-Anyone can browse the code, commits and branches using  [project web interface](https://code.google.com/p/auditory-brainstem-model/source/browse/). Please feel free to make you comments on files and wiki pages.
+Anyone can browse the code, commits and branches using  [project web interface](https://github.com/rat-h/auditory-brainstem-model). Please feel free to make you comments on files and wiki pages.
 
 ## How to Contribute to project? ##
-The simplest way to do this is became a [google code](http://code.google.com) user and add yourself to project developers. An other way is use git as main platform. So make you changes in local repository and send me your patch  on ruben.tikidji.hamburyan **AT** gmail.com
+The simplest way to do this is became a [Git Hub](http://github.com) user and add yourself to project developers. An other way is use git as main platform. So make you changes in local repository and send me your patch  on ruben.tikidji.hamburyan **AT** gmail.com
 Please read [Git everyday](https://www.kernel.org/pub/software/scm/git/docs/everyday.html) to get familiar with git terminology.
 
 ## Links and External Code ##
