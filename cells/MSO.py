@@ -140,7 +140,7 @@ class MSOcell:
 		for param in Param:
 			#TODO:because parameter maybe for dendrite or axon, we should
 			#     make a loop for segments and set parameters not only in soma.
-			try: exec "self.soma(0.5).{} = Param[\'{}\']".format(param,param)
+			try: exec "self.{} = Param[\'{}\']".format(param,param)
 			except BaseException as e:
 				logging.error("Coudn't set up parameter %s: %s"%(param,e))
 				raise ValueError("Wrong Parameter %s"%param) 

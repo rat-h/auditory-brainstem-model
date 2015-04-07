@@ -84,6 +84,9 @@ class vcnRaMbase:
 		#print 1E-9/self.somaarea
 		#<<DB
 		lstd = 1E4*h.sqrt(self.somaarea/h.PI)	# convert from cm to um 
+		#DB>>
+		#print lstd
+		#<<DB
 		self.soma = h.Section(name='soma', cell=self)
 		#self.soma.cm=1
 		self.soma.cm = speccm			# change this here - minor difference.
@@ -164,7 +167,7 @@ class vcnRaMbase:
 		if not (type(Param) is dict) : 
 			return
 		for param in Param:
-			try: exec "self.soma(0.5).{} = Param[\"{}\"]".format(param,param)
+			try: exec "self.{} = Param[\"{}\"]".format(param,param)
 			except BaseException as e:
 				logging.error("Coudn't set up parameter %s: %s"%(param,e))
 				raise ValueError("Wrong Parameter %s"%param) 
