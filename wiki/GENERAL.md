@@ -1,6 +1,7 @@
 # GENERAL section of Model Description File #
 
 General section contains several required options
+
 | **Option** | **Option Type** | **Description** |
 |:-----------|:----------------|:----------------|
 |networkfilename|_string_|Name of network file|
