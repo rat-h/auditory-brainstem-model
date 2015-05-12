@@ -79,8 +79,8 @@ def confreader(filename,nspace = {},sections=None,skip=None):
 	config.optionxform=str
 	try:
 		config.read( filename )
-	except :
-		logging.warning("couldn't read file: %s"%(filename) ) 
+	except BaseException as e:
+		logging.warning("couldn't read file %s. Error:%s"%(filename,e) ) 
 		return nspace
 	if sections == None:
 		sections = config.sections()

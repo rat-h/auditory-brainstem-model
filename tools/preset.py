@@ -377,6 +377,9 @@ def congen(config):
 				if mindelay == None: mindelay = delay
 				if mindelay > delay: mindelay = delay
 				if 'name' in conobj[9]:
+					#DB>>
+					#print conobj[8][0], conobj[8][1]
+					#<<DB
 					pat = [ postid, conobj[9]['name'], resolve2object(conobj[8][0],x,xm,y,ym,syncnt), resolve2object(conobj[8][1],x,xm,y,ym,syncnt) ]
 				else:
 					pat = [ postid, resolve2object(conobj[9],x,xm,y,ym,syncnt), resolve2object(conobj[8][0],x,xm,y,ym,syncnt), resolve2object(conobj[8][1],x,xm,y,ym,syncnt) ]

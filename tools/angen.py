@@ -157,6 +157,7 @@ class angen:
 			'tail'						: 0.1,
 			'squeezed'					: True,
 			'comment'					: "",
+			'input'						: '',
 		}
 		for par in stimparam:
 			params[par] = stimparam[par]
@@ -228,10 +229,10 @@ class angen:
 			logging.error(" > Couldn't read input file {}.".format(params['input']) )
 			return None
 
-		nchannels,sigdur,datasize,data = read24Wav(params["input"],
-			maxSPL = parmas["stimulus max. amplitude"],
-			resample=parmas["resample method"],
-			delay=parmas["delay"], tail=parmas["tail"]
+		nchannels,sigdur,datasize,data = readWav(params["input"],
+			maxSPL = params["stimulus max. amplitude"],
+			resample=params["resample method"],
+			delay=params["delay"], tail=params["tail"]
 			)
 		if nchannels != 2:
 			logging.error("Wrong number of channels {} in input file.".format(nchannels,params['input']) )
