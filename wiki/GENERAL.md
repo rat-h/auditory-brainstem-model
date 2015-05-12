@@ -17,7 +17,9 @@ pyextrapath		= ('$GENERAL:prefix$/lib','$GENERAL:prefix$/cells')
 
 Now you would like to make some small experiment with your model aside of main directory. So you create new directory and copy there your file.
 ```
-$mkdir ../small-test && cp maymodel.cfg ../small-test/test.cfg && cd ../small-test
+$mkdir ../small-test
+$cp maymodel.cfg ../small-test/test.cfg
+$cd ../small-test
 ```
 
 If you defined your paths explicitly (without _prefix_ or _source_ options), you would need to correct all paths along the file. However if you use relative paths (with _prefix_ or _source_ option) you need adjust only prefix option, and that's it! For example in file test.cfg in small-test directory you need just reset prefix like this:
