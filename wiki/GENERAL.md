@@ -8,7 +8,7 @@ General section contains several required options
 |pyextrapath|_string_ or _list of strings_|Paths which should be add to Python sys.paths variable to allow Python to find a modules. It may be empty (actually not good idea to keep it empty. If you thing it should be empty, something wrong with your model!) |
 
 ### Tricks and arbitrary options ###
-As you can understand from [basics of model description file](CONFSYNTAX.md) one can add arbitrary number of extra options to section. **It is not true for several sections of model description file**, but it is true for _GENERAL_ section. We strongly recommend to add options like 'prefix' or 'source' to your _GENERAL_ section. In simplest way you can set it to empty string or to './' . The second step of this trick is add link to 'pyextrapath' option and to many other options along your model description file. It looks like this:
+As you can understand from [basics of model description file](CONFSYNTAX.md) one can add arbitrary number of extra options to section. **That is not true for several sections of model description file**, but it is true for _GENERAL_ section. We strongly recommend to add options like 'prefix' or 'source' to your _GENERAL_ section. In simplest way you can set it to empty string or to './' . The second step of this trick is add link to 'pyextrapath' option and to many other options along your model description file. It looks like this:
 ```
 [GENERAL]
 prefix			= './'
