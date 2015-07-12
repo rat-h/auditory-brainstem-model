@@ -368,7 +368,10 @@ def congen(config):
 				xm = getpremark(hgid,lgid)
 				y  = possynpos(hgid,lgid)
 				ym = getposmark(hgid,lgid)
-				if not conobj[5](x,xm,y,ym,syncnt) : continue
+				if type(conobj[5]) is bool or type(conobj[5]) is int:
+					if not bool(conobj[5]): continue
+				else:
+					if not conobj[5](x,xm,y,ym,syncnt) : continue
 				preid = getpregid(hgid,lgid)
 				postid, postoff = getposgid(hgid,lgid)
 				cond, delay =\
