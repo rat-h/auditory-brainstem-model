@@ -550,6 +550,9 @@ def presetcellrec(rec, config):
 				logging.error("wrong index in recording %d. Index should be less than %d"%(c,total))
 				return None
 			reclist.append( ['rc', c+basegid, tuple(rec[2:]) , recname] )
+	elif rec[1] == None:
+		for c in xrange(total):
+			reclist.append( ['rc', c+basegid, tuple(rec[2:]) , recname] )
 	with open(config["GENERAL"]['networkfilename'],"ab") as fd:
 		for rec in reclist:
 			if rec[2][2] == None:
