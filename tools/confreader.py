@@ -102,24 +102,32 @@ def confreader(filename,nspace = {},sections=None,skip=None):
 			try:
 				exec "nspace[\""+section+"\"][\""+option+"\"]="+item
 				nspace[section]['__:hash:__'].update(xitem)
-			except :
+			except BaseException as e:
 				logging.warning("Problem with reading configuration from the %s"%filename) 
 				logging.warning("Cannot read section: \'%s\', option: \'%s\'"%(section,option) )
 				logging.warning("        %s"%item)
+				logging.warning("Exception: %s"%e)
 				logging.warning("!!!! SKIPPED IT !!!!")
 				pass
 	# Calculate hash
 	for section in sections:
 		if skipit(section,skip) : continue
-		if not '__:hash:__' in nspace[section]:continue
+		if not '__:hash:__' in nspace[section]:
+			logging.warning("Cannot find hash object to calculate hashsum of section %s"%section)
+			continue
 		nspace[section]['__:hash:__'] = nspace[section]['__:hash:__'].hexdigest()
 	
 	for section in sections:
 		if skipit(section,skip) : continue
 		if not '__:dependency:__' in nspace[section]:continue
 		for parents in nspace[section]['__:dependency:__']:
-			if not '__:hash:__' in nspace[parents]:continue
+			if not '__:hash:__' in nspace[parents]:
+				logging.warning("Cannot find hash sum in parent section \'%s\' to add to dependent section \'%s\'"%(parent,section))
+				continue
 			nspace[section]['__:hash:__'] += nspace[parents]['__:hash:__']
+		logging.debug(" > Section % 14s is successfully processed"%(section))
+		logging.debug(" >      Section hash-sum : {}".format(nspace[section]['__:hash:__']))
+		logging.debug(" >    Section dependency : {}".format([ str(parents) for parents in nspace[section]['__:dependency:__'] ]))
 		del nspace[section]['__:dependency:__']
 	return nspace
 
