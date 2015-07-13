@@ -261,10 +261,8 @@ config["POPULATIONS"]["__:hash:__"] += config[   "CELLS"   ]["__:hash:__"]
 config["POPULATIONS"]["__:hash:__"] += config[  "STIMULI"  ]["__:hash:__"]
 config["CONNECTIONS"]["__:hash:__"] += config["POPULATIONS"]["__:hash:__"]
 for con in config["CONNECTIONS"]:
-	#DB>>
-	print type(con[8])
-	#<<DB
-	if type(con[8]) is str:
+	if con == "__:hash:__": continue
+	if type(config["CONNECTIONS"][con][9]) is str:
 		config["CONNECTIONS"]["__:hash:__"] += config["SYNAPSES"]["__:hash:__"]
 		break
 config["RECORD"]["__:hash:__"]      += config["POPULATIONS"]["__:hash:__"]
