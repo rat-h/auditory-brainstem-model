@@ -227,6 +227,7 @@ config = confreader( config["CONF"]["file"], nspace=config, sections = ["GENERAL
 if config == {} or config == None:
 	logging.error("Couldn't read section {} from config file '{}' ".format(["GENERAL","AUDITORY NERVE","STIMULI","CELLS"],config))
 	pcexit(1)
+config["STIMULI"]["__:hash:__"] += config["AUDITORY NERVE"]["__:hash:__"]
 logging.info(" > DONE")
 
 config = checkgeneralsettings( config )
@@ -256,6 +257,18 @@ config = confreader( config["CONF"]["file"], nspace=config, sections = ["POPULAT
 if config == {} or config == None:
 	logging.error("Couldn't read section {} from config file '{}' ".format(["POPULATIONS","SYNAPSES","CONNECTIONS","RECORD","SIMULATION"],config))
 	pcexit(1)
+config["POPULATIONS"]["__:hash:__"] += config[   "CELLS"   ]["__:hash:__"]
+config["POPULATIONS"]["__:hash:__"] += config[  "STIMULI"  ]["__:hash:__"]
+config["CONNECTIONS"]["__:hash:__"] += config["POPULATIONS"]["__:hash:__"]
+for con in config["CONNECTIONS"]:
+	#DB>>
+	print type(con[8])
+	#<<DB
+	if type(con[8]) is str:
+		config["CONNECTIONS"]["__:hash:__"] += config["SYNAPSES"]["__:hash:__"]
+		break
+config["RECORD"]["__:hash:__"]      += config["POPULATIONS"]["__:hash:__"]
+		
 logging.info(" > DONE")
 
 config["GENERAL"]["NETWORKHASH"]=""
