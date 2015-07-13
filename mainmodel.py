@@ -266,7 +266,6 @@ for con in config["CONNECTIONS"]:
 		config["CONNECTIONS"]["__:hash:__"] += config["SYNAPSES"]["__:hash:__"]
 		break
 config["RECORD"]["__:hash:__"]      += config["POPULATIONS"]["__:hash:__"]
-		
 logging.info(" > DONE")
 
 config["GENERAL"]["NETWORKHASH"]=""
