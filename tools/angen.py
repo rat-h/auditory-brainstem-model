@@ -15,8 +15,8 @@ if __name__ == "__main__":
 	homedir = os.path.dirname(sys.argv[0])
 	sys.path.insert(0,homedir+"/tools")
 
-import ZilanyCarney2009AN as an
-import audiotools as at
+#import ZilanyCarney2009AN as an
+#import audiotools as at
 
 
 class angen:
@@ -46,6 +46,7 @@ class angen:
 		elif stimparam['stimtype'] == 'wave':		params=self.get_wave_params(stimparam )
 		elif stimparam['stimtype'] == 'tone':		params=self.get_tone_params(stimparam )
 		elif stimparam['stimtype'] == 'SAM-noise':	params=self.get_SAM_params(stimparam )
+		elif stimparam['stimtype'] == 'test':		params=self.get_test_params(stimparam )
 
 		if fparams == params:
 			logging.debug("    > Stimulus file {} is OK".format(filename))
@@ -67,6 +68,7 @@ class angen:
 		if stimparam['stimtype'] == 'wave':      return self.gen_wave(   filename, anconfig, stimparam, sectionchecksums)
 		if stimparam['stimtype'] == 'tone':      return self.gen_tone(   filename, anconfig, stimparam, sectionchecksums)
 		if stimparam['stimtype'] == 'SAM-noise': return self.gen_SAM(    filename, anconfig, stimparam, sectionchecksums)
+		if stimparam['stimtype'] == 'test':      return self.gen_test(   filename, anconfig, stimparam, sectionchecksums)
 
 	#######################################################################
 	#                                                                     #
@@ -476,6 +478,143 @@ class angen:
 			anspks[idx] = ( hc, spks )
 			sys.stderr.write(" done\n")
 		return anihc,ansyns,anspks
+	#######################################################################
+	#                                                                     #
+	#                            TEST GENERATOR                           #
+	#                                                                     #
+	#######################################################################
+	def get_test_params(self,stimparam):
+		params ={
+			'stimtype'						: 'test',
+			'interaural time difference'	: 0.,
+			'period of spikes'				: 1.e-3,
+			'number of spikes'				: 1.,
+			'delay'							: 0.01,
+			'tail'							: 0.1,
+			'squeezed'						: True,
+			'comment'						: "",
+			
+		}
+		for par in stimparam:
+			params[par] = stimparam[par]
+		return params
+	def gen_test(self,filename, anconfig, stimparam, sectionchecksums):
+		params = self.get_test_params(stimparam)
+		logging.debug("TEST DATA GENERATOR:")
+		params["auditory nerve configuration"] = anconfig
+		params["totaldur"] = params['period of spikes']*params['number of spikes']+params["delay"]+params["tail"]\
+							+ np.abs(params['interaural time difference'])
+		for parname in params:
+			logging.debug(" > % 31s :{}".format(params[parname])%parname)
+		logging.debug(" > % 31s :{}".format(filename)%('output file'))
+		logging.debug(" > > > > > > > > > > > > ")
+		ldata = np.array([ params["delay"] + params['interaural time difference']/2 \
+				+ params['period of spikes']*x for x in xrange(params['number of spikes']) ])*1e3 #ms
+		rdata = np.array([ params["delay"] - params['interaural time difference']/2 \
+				+ params['period of spikes']*x for x in xrange(params['number of spikes']) ])*1e3 #ms
+		lrec = np.zeros( int(params["totaldur"]*100e3 ) )
+		lrec[(ldata*100).astype(int)]=1
+		rrec = np.zeros( int(params["totaldur"]*100e3 ) )
+		rrec[(rdata*100).astype(int)]=1
+		lspk=[]
+		for hc in anconfig[0]:
+			spks=[ ldata for ft in hc[1:] ]
+			lspk.append( (hc, spks) )
+		rspk=[]
+		for hc in anconfig[1]:
+			spks=[ rdata for ft in hc[1:] ]
+			rspk.append( (hc, spks) )
+		try:
+			with open(filename,"wb") as fd:
+				pickle.dump(sectionchecksums,fd)
+				pickle.dump(params,fd)
+				pickle.dump(lspk,fd)
+				pickle.dump(rspk,fd)
+				pickle.dump(lrec,fd)
+				pickle.dump(rrec,fd)
+				if not params["squeezed"]:
+					pickle.dump(None,fd)
+					pickle.dump(None,fd)
+					pickle.dump(None,fd)
+					pickle.dump(None,fd)
+			return params
+		except BaseException as e:
+			logging.error(" > Couldn't save file %s: {}".format(e)%filename)
+			return None
+
+	#######################################################################
+	#                                                                     #
+	#                            SURROGATE DATA                           #
+	#                                                                     #
+	#######################################################################
+	#def get_surrogate_params(self,stimparam):
+		#params ={
+			#'stimtype'						: 'surrogate',
+			#'interaural time difference'	: 0.,
+			#'spike per burst'				: 1.,
+			#'period in burst'				: 1.e-3,
+			#'number of bursts'				: 1.,
+			#'period of bursts'				: 10.e-3,
+			#'chanel mask'					: None,
+			#'delay'							: 0.01,
+			#'tail'							: 0.1,
+			#'squeezed'						: True,
+			#'comment'						: "",
+			
+		#}
+		#for par in stimparam:
+			#params[par] = stimparam[par]
+		#return params
+	#def get_surrogate(self,filename, anconfig, stimparam, sectionchecksums):
+		#params = self.get_surrogate_params(stimparam)
+		#logging.debug("SURROGATE DATA GENERATOR:")
+		#params["auditory nerve configuration"] = anconfig
+		#params["totaldur"] = params["stimulus duration"]+params["delay"]+params["tail"]
+
+		#logging.debug("TONE GENERATOR:")
+		#for parname in params:
+			#logging.debug(" > % 31s :{}".format(params[parname])%parname)
+		#logging.debug(" > % 31s :{}".format(filename)%('output file'))
+		#logging.debug(" > > > > > > > > > > > > ")
+
+		#lsin = SAMnoise(
+			#frequency	= params["modulation frequency"],
+			#duration	= params["modulation duration"],
+			#stimdb		= params["stimulus amplitude"]-params["interaural level difference"],
+			#rampup		= params["ramped up"], rampdown = params["ramped down"],
+			#delay		= params["delay"]-params["interaural time difference"], 
+			#tail		= params["tail"]+params["interaural time difference"],
+			#moddip		= params["modulation deep"]
+		#)
+		#rsin = SAMnoise(
+			#frequency	= params["modulation frequency"],
+			#duration	= params["modulation duration"],
+			#stimdb		= params["stimulus amplitude"]+params["interaural level difference"],
+			#rampup		= params["ramped up"], rampdown = params["ramped down"],
+			#delay		= params["delay"]+params["interaural time difference"], 
+			#tail		= params["tail"]-params["interaural time difference"],
+			#moddip		= params["modulation deep"]
+		#)
+		#lihc,lsyn,lspk = self.AuditoryNerve(lsin,anconfig[0])
+		#rihc,rsyn,rspk = self.AuditoryNerve(rsin,anconfig[1])
+		#try:
+			#with open(filename,"wb") as fd:
+				#pickle.dump(sectionchecksums,fd)
+				#pickle.dump(params,fd)
+				#pickle.dump(lspk,fd)
+				#pickle.dump(rspk,fd)
+				#pickle.dump(lsin,fd)
+				#pickle.dump(rsin,fd)
+				#if not params["squeezed"]:
+					#pickle.dump(lsyn,fd)
+					#pickle.dump(rsyn,fd)
+					#pickle.dump(lihc,fd)
+					#pickle.dump(rihc,fd)
+			#return params
+		#except BaseException as e:
+			#logging.error(" > Couldn't save file %s: {}".format(e)%filename)
+			#return None
+		
 
 def genconf(config):
 	def regen(config):
@@ -527,7 +666,7 @@ def genconf(config):
 if __name__ == "__main__":
 	def printHUM(hlp):
 		def printHUMitem(item,params):
-			print "========================STIMULUS=:=%s================="%(item)
+			print "======================= STIMULUS : %s ================="%(item)
 			print "{} : {}".format("% 32s"%'stimtype',params['stimtype'])
 			for p in params:
 				if p == 'stimtype':continue
@@ -537,6 +676,7 @@ if __name__ == "__main__":
 		printHUMitem("WAVE", hlp.get_wave_params({})  )
 		printHUMitem("TONE", hlp.get_tone_params({})  )
 		printHUMitem("SAM",  hlp.get_SAM_params({})   )
+		printHUMitem("TEST", hlp.get_test_params({})  )
 	def printTBL(hlp):
 		def printTBLitem(item,params):
 			print "||{}||{}||{}||".format(item,'stimtype',params['stimtype'])
@@ -548,6 +688,7 @@ if __name__ == "__main__":
 		printTBLitem("WAVE", hlp.get_wave_params({})  )
 		printTBLitem("TONE", hlp.get_tone_params({})  )
 		printTBLitem("SAM",  hlp.get_SAM_params({})   )
+		printTBLitem("TEST", hlp.get_test_params({})  )
 		
 	def printXML(hlp):
 		def printXMLnode(node,params):
@@ -561,6 +702,7 @@ if __name__ == "__main__":
 		printXMLnode("WAVE", hlp.get_wave_params({})  )
 		printXMLnode("TONE", hlp.get_tone_params({})  )
 		printXMLnode("SAM",  hlp.get_SAM_params({})   )
+		printXMLnode("TEST", hlp.get_test_params({})  )
 		print "</STIMULI>"
 	hlp = angen()
 	if len(sys.argv) < 2:
