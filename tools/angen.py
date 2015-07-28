@@ -57,6 +57,7 @@ class angen:
 		if self.imported:
 			import ZilanyCarney2009AN as an
 			import audiotools as at
+			global an,at
 			self.imported = False
 			logging.debug("    > Imported modules for AN")
 			logging.debug("    > sys.path = {}".format(sys.path))
