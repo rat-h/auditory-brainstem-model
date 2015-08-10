@@ -180,7 +180,7 @@ if config["GENERAL"]["NODETOTALS"] == 1:
 	config["GENERAL"]["NODERANGE"]	= range(1)
 	config["CONF"]["parallel"]	= False
 	if config["CONF"]["log"] == None:
-		config["CONF"]["log"] = 'mainmodel.log' 
+		config["CONF"]["log"] = config["CONF"]["file"]+'.log' 
 else:
 	if config["CONF"]["log"] == None:
 		config["CONF"]["log"] = 'log/node%03d.log'%config["GENERAL"]["NODEID"]
@@ -450,6 +450,15 @@ if config["CONF"]["run"]:
 				stimdurations += obj[1:]
 				logging.debug(" > add stimuli duration %s"%str(obj[1:]))
 	logging.info(" > DONE")
+	if 'minimal-delay' in config["SIMULATION"]:
+		if mindelay != None:
+			if config["SIMULATION"]['minimal-delay'] < mindelay :
+				mindelay = config["SIMULATION"]['minimal-delay']
+			else:
+				logging.warring("Requested minimal delay bigger than minimal delay in connections: ignore minimal-delay option in SIMULATION section") 
+		else:
+			mindelay = config["SIMULATION"]['minimal-delay']
+		logging.info("Set up minimal delay by STIMULATION option into %g"%mindelay)
 	if mindelay == None:
 		logging.error("Minimal delay isn't set")
 		pcexit(1)
