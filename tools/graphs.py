@@ -124,11 +124,11 @@ def calculate_spikerate(stimname,population,nbins=100,binsize=1.,mrange=None, ts
 	for xpop in poplist:
 		xvec = xpop[1]
 		stimlist[stimname][4][xvec[0]].seek(xvec[1])
-		xspk = pickle.load(stimlist[stimname][4][xvec[0]])
-		xspk = xspk[2][ np.where( xspk[2] < float(nbins*binsize) ) ]
+		xspk = pickle.load(stimlist[stimname][4][xvec[0]])[2]
 		if tstim != None and (type(tstim) is float or type(tstim) is int):
 			xspk = xspk[ np.where( xspk >= float(tstim) ) ]
 			xspk -= float(tstim)
+		xspk = xspk[ np.where( xspk < float(nbins*binsize) ) ]
 		if len(xspk) <= 0: continue
 		xspk = np.floor(xspk/binsize).astype(int)
 		sprate[ xspk ] += 1
@@ -148,22 +148,63 @@ def plot_population_spikerate(stimname,popname,nbins=100,binsize=1.,mrange=None,
 		sprate /= xcount
 	plt.bar(np.arange(nbins)*binsize-0.45*binsize,sprate,0.9*binsize,color=color,edgecolor=color,alpha=alpha)
 
-def plot_stimrate(popname,mrange=None,stimuli=None,m0a=False):
+def plot_stimrate(popname,mrange=None,stimuli=None,m0a0t='ave',tstim=None,nbins=100,binsize=1.,separate=False,color=None):
 	if stimuli == None :
 		stimuli = stimnames
 	x = np.arange(len(stimuli))
-	y = np.zeros(len(stimuli))
-	for idx, stimname in zip(xrange(len(stimuli)),stimuli):
-		if type(popname) is tuple or type(popname) is list:
-			sprate = np.zeros(nbins, dtype=np.dtype('i'))
-			xcount = 0
-			for pname in popname:
-				nspr, nsize = calculate_spikerate(stimname,pname,mrange=mrange)
-				sprate += nspr
-				xcount += nsize
+	if separate and ( type(popname) is tuple or type(popname) is list ):
+		y = np.zeros( (len(stimuli), len(popname)) )
+	else:
+		y = np.zeros(len(stimuli))
+	if tstim != None and type(tstim) is tuple and len(tstim) != len(stimuli):
+		ValueError("tstim in tuple sets simulus moment for each simulation. It should have same size as number of stimuli")
+	if nbins != None and type(nbins) is tuple and len(nbins) != len(stimuli):
+		ValueError("nbins in tuple sets simulus moment for each simulation. It should have same size as number of stimuli")
+	if binsize != None and type(binsize) is tuple and len(binsize) != len(stimuli):
+		ValueError("binsize in tuple sets simulus moment for each simulation. It should have same size as number of stimuli")
+
+	if type(popname) is tuple or type(popname) is list:
+		if separate:
+			for idx, stimname in enumerate(stimuli):
+				tsm = tstim[idx]   if tstim != None   and type(tstim)   is tuple else tstim
+				nbs = nbins[idx]   if nbins != None   and type(nbins)   is tuple else nbins
+				bsz = binsize[idx] if binsize != None and type(binsize) is tuple else binsize
+		
+				shift = 0.8/float( len( popname ) )
+				for pid,pname in enumerate( popname ):
+					sprate, xcount = calculate_spikerate(stimname,pname,mrange=mrange,tstim=tsm,binsize=bsz,nbins=nbs)
+					if m0a0t == 'max' or m0a0t == 'M': y[idx][pid] = np.max(sprate)
+					if m0a0t == 'ave' or m0a0t == 'a': y[idx][pid] = np.mean(sprate)
+					if m0a0t == 'tot' or m0a0t == 'T': y[idx][pid] = np.sum(sprate)
+			for pid,pname in enumerate( popname ):
+				if color == None:
+					plt.bar(x+shift*pid-0.4,y[:,pid],shift,color="k",label=pname)
+				else:
+					plt.bar(x+shift*pid-0.4,y[:,pid],shift,color=color[pid],label=pname)
 		else:
-			sprate, xcount = calculate_spikerate(stimname,popname,mrange=mrange)
-		y[idx] = np.mean(sprate) if m0a else np.max(sprate)
-	plt.bar(x-0.4,y,0.8,color="k")
+			for idx, stimname in enumerate(stimuli):
+				tsm = tstim[idx]   if tstim != None   and type(tstim)   is tuple else tstim
+				nbs = nbins[idx]   if nbins != None   and type(nbins)   is tuple else nbins
+				bsz = binsize[idx] if binsize != None and type(binsize) is tuple else binsize
+				sprate = np.zeros(nbins, dtype=np.dtype('i'))
+				xcount = 0
+				for pname in popname:
+					nspr, nsize = calculate_spikerate(stimname,pname,mrange=mrange,tstim=tsm,binsize=bsz,nbins=nbs)
+					sprate += nspr
+					xcount += nsize
+				if m0a0t == 'max' or m0a0t == 'M': y[idx] = np.max(sprate)
+				if m0a0t == 'ave' or m0a0t == 'a': y[idx] = np.mean(sprate)
+				if m0a0t == 'tot' or m0a0t == 'T': y[idx] = np.sum(sprate)
+			plt.bar(x-0.4,y,0.8,color="k")
+	else:
+			for idx, stimname in enumerate(stimuli):
+				tsm = tstim[idx]   if tstim != None   and type(tstim)   is tuple else tstim
+				nbs = nbins[idx]   if nbins != None   and type(nbins)   is tuple else nbins
+				bsz = binsize[idx] if binsize != None and type(binsize) is tuple else binsize
+				sprate, xcount = calculate_spikerate(stimname,popname,mrange=mrange,tstim=tsm,binsize=bsz,nbins=nbs)
+				if m0a0t == 'max' or m0a0t == 'M': y[idx] = np.max(sprate)
+				if m0a0t == 'ave' or m0a0t == 'a': y[idx] = np.mean(sprate)
+				if m0a0t == 'tot' or m0a0t == 'T': y[idx] = np.sum(sprate)
+			plt.bar(x-0.4,y,0.8,color="k")
 	plt.xticks(x, stimuli, rotation='vertical')
 	plt.subplots_adjust(bottom=0.15)
