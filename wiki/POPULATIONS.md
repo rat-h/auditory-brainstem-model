@@ -10,12 +10,13 @@ Each population option is a list of of three and more items.
 
 Each definition of cells is a _list_ of 5 items:
 
-|1|_sting_| | name of Python objects which represents this cell type (see [CELLS section](CELLS.md)) |
-|:|:------|:|:---------------------------------------------------------------------------------------|
-|2 |_int_|  | number of global ID which will be assigned for each object. Please take into account that one Python object can be more than one sources of spikes, so it needs more than one global ID. See [NEURON parallel mechanisms](http://www.neuron.yale.edu/neuron/static/papers/jnm/parallelizing_models_jnm2008.pdf) for better understanding of global ID concept.|
-|3 |_list of Python objects_ or _string_|  | Marker for each cell in the population. If it is a _string_, all cell would be marked by this string. If it is a _list_ the number of items in the list should be equal to a number of global ID in each cell object|
-|4 |_dictionary_| **(!)** |Parameters which are passed to cell object.|
-|5 |_float_ or _function_ | **(!)** |probability that cell type will be included into population|
+| **#** | **type** | **(!)** | **Description** |
+|:------|:---------|:--------|:----------------|
+| 1 | _sting_ | | name of Python objects which represents this cell type (see [CELLS section](CELLS.md)) |
+| 2 | _int_   |  | number of global ID which will be assigned for each object. Please take into account that one Python object can be more than one sources of spikes, so it needs more than one global ID. See [NEURON parallel mechanisms](http://www.neuron.yale.edu/neuron/static/papers/jnm/parallelizing_models_jnm2008.pdf) for better understanding of global ID concept.|
+| 3 | _list of Python objects_ or _string_ |  | Marker for each cell in the population. If it is a _string_, all cell would be marked by this string. If it is a _list_ the number of items in the list should be equal to a number of global ID in each cell object|
+| 4 | _dictionary_ | **(!)** |Parameters which are passed to cell object.|
+| 5 | _float_ or _function_ | **(!)** |probability that cell type will be included into population|
 
 **(!)** - values in dictionary and probabilities may be a function from ONE variable. This function will be called by script for each cell object. The variable passed to function changes from the zero to the one while index of cell goes from the beginning of population to the end. Please take into account that both zero and one are included into the reange of this variable.
 
