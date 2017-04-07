@@ -65,7 +65,7 @@ In this stage:
   1. If it is launched with '--stat' key, it reads [STAT](STAT.md) section and prints the results of statistic analyses to the standard output console as well as to csv file
 
 ### Stages and key diagrame ###
-![https://docs.google.com/drawings/d/1W17nY6YlJItn5Oo_SE2gv_o09bpHl1LQin-GIzlWC_o/pub?w=600&amp;h=598.png](https://docs.google.com/drawings/d/1W17nY6YlJItn5Oo_SE2gv_o09bpHl1LQin-GIzlWC_o/pub?w=600&amp;h=598.png)
+![https://docs.google.com/drawings/d/1W17nY6YlJItn5Oo_SE2gv_o09bpHl1LQin-GIzlWC_o/pub?w=824&h=753](https://docs.google.com/drawings/d/1W17nY6YlJItn5Oo_SE2gv_o09bpHl1LQin-GIzlWC_o/pub?w=824&h=753)
 
 | < Previous|[Home](https://code.google.com/p/auditory-brainstem-model/)|[NEXT> Model configuration file](CONFSYNTAX.md)|
 |:----------|:----------------------------------------------------------|:----------------------------------------------|
