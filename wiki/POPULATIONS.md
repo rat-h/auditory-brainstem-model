@@ -9,6 +9,7 @@ Each population option is a list of of three and more items.
   * Third and all other items are definition of cells within the population.
 
 Each definition of cells is a _list_ of 5 items:
+
 |1|_sting_| | name of Python objects which represents this cell type (see [CELLS section](CELLS.md)) |
 |:|:------|:|:---------------------------------------------------------------------------------------|
 |2 |_int_|  | number of global ID which will be assigned for each object. Please take into account that one Python object can be more than one sources of spikes, so it needs more than one global ID. See [NEURON parallel mechanisms](http://www.neuron.yale.edu/neuron/static/papers/jnm/parallelizing_models_jnm2008.pdf) for better understanding of global ID concept.|
@@ -103,5 +104,5 @@ left-lso = [ None, 120,
 
 ```
 
-|[CELLS section <PREVIOUS](CELLS.md)|[Home](https://code.google.com/p/auditory-brainstem-model/)|[[NEXT> SYNAPSES section](SYNAPSES.md)|
+|[CELLS section <PREVIOUS](CELLS.md)|[Home](https://code.google.com/p/auditory-brainstem-model/)|[NEXT> SYNAPSES section](SYNAPSES.md)|
 |:----------------------------------|:----------------------------------------------------------|:-------------------------------------|
