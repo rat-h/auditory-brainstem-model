@@ -1,12 +1,15 @@
 # STIMULI section of Model Description File #
 
 Stimuli section has only one required options
+
 | **Option** | **Option type** | **Description** |
 |:-----------|:----------------|:----------------|
 |stimuli| _string_  or _list_ of _strings_ |  Each _string_ is considered as options in STIMULI section with stimulus parameters.|
 
+
 ### Stimulus Definition ###
 Each stimulus option is a list for 4 objects.
+
 |**#**|**Type**| **Description** |
 |:----|:-------|:----------------|
 | 1 | _string_ | Name of stimulus file |
