@@ -11,8 +11,7 @@ There are three stages of each simulation which are
   * **Preprocessing** aka preset
   * **Simulation**
   * **Indexing and Analyze** aka postset
-
-![https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/4JAbgw2fY3BS99b?x=1920&y=629&a=true&file=stages-and-keys.jpg&scalingup=0](https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/4JAbgw2fY3BS99b?x=1920&y=629&a=true&file=stages-and-keys.jpg&scalingup=0)
+![https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/kLkn4WWL6X9ABWb?x=1920&y=629&a=true&file=three-steps-procedure.jpg&scalingup=0](https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/kLkn4WWL6X9ABWb?x=1920&y=629&a=true&file=three-steps-procedure.jpg&scalingup=0)
 
 Let look at each stage separately.
 
@@ -65,7 +64,8 @@ In this stage:
   1. If it is launched with '--stat' key, it reads [STAT](STAT.md) section and prints the results of statistic analyses to the standard output console as well as to csv file
 
 ### Stages and key diagrame ###
-![https://docs.google.com/drawings/d/1W17nY6YlJItn5Oo_SE2gv_o09bpHl1LQin-GIzlWC_o/pub?w=824&h=753](https://docs.google.com/drawings/d/1W17nY6YlJItn5Oo_SE2gv_o09bpHl1LQin-GIzlWC_o/pub?w=824&h=753)
+![https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/4JAbgw2fY3BS99b?x=1920&y=629&a=true&file=stages-and-keys.jpg&scalingup=0](https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/4JAbgw2fY3BS99b?x=1920&y=629&a=true&file=stages-and-keys.jpg&scalingup=0)
+
 
 | < Previous|[Home](https://code.google.com/p/auditory-brainstem-model/)|[NEXT> Model configuration file](CONFSYNTAX.md)|
 |:----------|:----------------------------------------------------------|:----------------------------------------------|
