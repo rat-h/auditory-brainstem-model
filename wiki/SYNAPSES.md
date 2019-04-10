@@ -3,7 +3,7 @@ First, SYNAPSES is not obligatory section. You may skip it. However if you are g
 
 The main concept of SYNAPSES section is shown on this picture.
 
-![https://docs.google.com/drawings/d/1NZDnnCA8lbf3fZRAhSo7LoVdJzrkhNcPLN-rDM67Xlc/pub?w=668&h=160&something.png](https://docs.google.com/drawings/d/1NZDnnCA8lbf3fZRAhSo7LoVdJzrkhNcPLN-rDM67Xlc/pub?w=668&h=160&something.png)
+![https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/fSKHgAPyMyZHi87?x=1920&y=629&a=true&file=Synapses_section.jpg&scalingup=0](https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/fSKHgAPyMyZHi87?x=1920&y=629&a=true&file=Synapses_section.jpg&scalingup=0)
 
 In general, options in SYNAPSES section allow recognize the same kind of synapse and connect all sources to one object, represented synapse.
 If synaptic objects is defined in [CONNECTIONS section](CONNECTIONS.md), a new synaptic object will be added for each source.
