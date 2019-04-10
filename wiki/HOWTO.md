@@ -12,7 +12,7 @@ There are three stages of each simulation which are
   * **Simulation**
   * **Indexing and Analyze** aka postset
 
-![https://storage.r-a-r.org/index.php/s/4JAbgw2fY3BS99b](https://storage.r-a-r.org/index.php/s/4JAbgw2fY3BS99b)
+![https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/4JAbgw2fY3BS99b?x=1920&y=629&a=true&file=stages-and-keys.jpg&scalingup=0](https://storage.r-a-r.org/index.php/apps/files_sharing/publicpreview/4JAbgw2fY3BS99b?x=1920&y=629&a=true&file=stages-and-keys.jpg&scalingup=0)
 
 Let look at each stage separately.
 
