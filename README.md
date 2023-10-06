@@ -1,14 +1,18 @@
-## Auditory Brainstem Project ##
+# Auditory Brainstem Project
+
+## NOTE
+Due to the GitHub enforcement of 2fa, which requires me to share my phone number with Microsoft or install an untrusted Microsoft application on my phone, any updates to this repository will be pushed to its clone at GitLab or to my personal git repository. Please see all updates [here](https://rth.r-a-r.org). Sorry, there should be something private in this life where Microsoft, Google or others don't put their noses.
+
 **Auditory Brainstem Project** is a software framework for _[NEURON+Python](http://frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/001.2009/)_ with MPI or threading [parallelization](http://www.neuron.yale.edu/neuron/static/papers/jnm/parallelizing_models_jnm2008.pdf). Ultimate goal of this project is provide a simple, flexible environment to create large-scale model, run simulations and analysis results of simulations for neural networks naturally split on distinctive nuclei. For more scientific details please visit  **[main project's webpage](http://sites.google.com/site/auditorybsmodel/)**
 
 This code is designed to run through [NSG Portal](http://www.nsgportal.org/).
 It allows separate single-tread code, like setting network connectivity up, generating stimuli, collecting and indexing data, statistic analysis and graphics plotting from parallel code, i.e. actual simulation. As a result one should launch the application at least twice, but in wast majority cases three times with different command line keys. First to build model, this stage is called '_preset_'. Then second time to run a simulation, this may be done on different computer and/or NSG portal. And finally the third time to index recordings, make statistic analysis and figures plotting.
 Please find more details in [User guide page](wiki/HOWTO.md)
 
-## Current Status of Project ##
+## Current Status of Project
 Currently this project has **unstable/experimental** status and totally in the developing stage. We plan to create a stable branch and make first stable commit in a few months.
 
-## How to get it? ##
+## How to get it? 
 The code is distributed under [GNU GPL v3 License](http://www.gnu.org/copyleft/gpl.html).
 
 Although it may be downloaded as [zip](https://github.com/rat-h/auditory-brainstem-model/archive/master.zip) archive, it is better to clone latest version from repository. For MacOS or Linux operating system, you need to open the terminal and run git program:
