@@ -1,7 +1,6 @@
 # Auditory Brainstem Project
 
-## NOTE
-Due to the GitHub enforcement of 2fa, which requires me to share my phone number with Microsoft or install an untrusted Microsoft application on my phone, any updates to this repository will be pushed to its clone at GitLab or to my personal git repository. Please see all updates [here](https://rth.r-a-r.org). Sorry, there should be something private in this life where Microsoft, Google or others don't put their noses.
+**NOTE** Due to the GitHub enforcement of 2fa, which requires me to share my phone number with Microsoft or install an untrusted Microsoft application on my phone, any updates to this repository will be pushed to its clone at GitLab or to my personal git repository. Please see all updates [here](https://rth.r-a-r.org). Sorry, there should be something private in this life where Microsoft, Google or others don't put their noses.
 
 **Auditory Brainstem Project** is a software framework for _[NEURON+Python](http://frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/001.2009/)_ with MPI or threading [parallelization](http://www.neuron.yale.edu/neuron/static/papers/jnm/parallelizing_models_jnm2008.pdf). Ultimate goal of this project is provide a simple, flexible environment to create large-scale model, run simulations and analysis results of simulations for neural networks naturally split on distinctive nuclei. For more scientific details please visit  **[main project's webpage](http://sites.google.com/site/auditorybsmodel/)**
 
